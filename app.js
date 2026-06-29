@@ -15,6 +15,9 @@
   var DEFAULT_INCOME_CATS = ['Sueldo', 'Freelance', 'Honorarios', 'Otros'];
   var DEFAULT_EXPENSE_CATS = ['Mercadería', 'Agua', 'Tiendas Comerciales', 'Ahorro', 'Bip', 'Spotify', 'Youtube'];
 
+  // Regex para validación de texto: letras, números, espacios y caracteres especiales del español
+  var VALID_TEXT_REGEX = /^[a-zA-Z0-9\s.,\-ñÑáéíóúÁÉÍÓÚ]+$/;
+
   // ============================================================
   // STATE
   // ============================================================
@@ -249,28 +252,64 @@
     var monthTxs = getMonthTransactions(state.selectedMonth);
     var incomeTxs = monthTxs.filter(function (tx) { return tx.type === 'income'; });
     var total = 0;
-    var html = '';
+
+    // Limpiar contenido previo de forma segura
+    while (dom.incomeList.firstChild) {
+      dom.incomeList.removeChild(dom.incomeList.firstChild);
+    }
 
     if (incomeTxs.length === 0) {
-      dom.incomeList.innerHTML = '<p class="tx-group__empty">No hay ingresos registrados este mes</p>';
+      var emptyMsg = document.createElement('p');
+      emptyMsg.classList.add('tx-group__empty');
+      emptyMsg.textContent = 'No hay ingresos registrados este mes';
+      dom.incomeList.appendChild(emptyMsg);
       dom.totalIncome.textContent = formatCLP(0);
       return;
     }
 
+    var fragment = document.createDocumentFragment();
+
     incomeTxs.forEach(function (tx) {
       total += tx.amount;
-      var desc = tx.description ? '<p class="tx-item__desc">' + sanitizeString(tx.description) + '</p>' : '';
-      html += '<div class="tx-item" data-id="' + tx.id + '">' +
-        '<div class="tx-item__info">' +
-          '<span class="tx-item__category">' + sanitizeString(tx.category) + '</span>' +
-          desc +
-        '</div>' +
-        '<span class="tx-item__amount tx-item__amount--income">' + formatCLP(tx.amount) + '</span>' +
-        '<button class="tx-item__delete" data-action="deleteTx" title="Eliminar" aria-label="Eliminar">✕</button>' +
-      '</div>';
+
+      var item = document.createElement('div');
+      item.classList.add('tx-item');
+      item.setAttribute('data-id', tx.id);
+
+      var info = document.createElement('div');
+      info.classList.add('tx-item__info');
+
+      var catSpan = document.createElement('span');
+      catSpan.classList.add('tx-item__category');
+      catSpan.textContent = tx.category;
+      info.appendChild(catSpan);
+
+      if (tx.description) {
+        var descP = document.createElement('p');
+        descP.classList.add('tx-item__desc');
+        descP.textContent = tx.description;
+        info.appendChild(descP);
+      }
+
+      var amountSpan = document.createElement('span');
+      amountSpan.classList.add('tx-item__amount');
+      amountSpan.classList.add('tx-item__amount--income');
+      amountSpan.textContent = formatCLP(tx.amount);
+
+      var deleteBtn = document.createElement('button');
+      deleteBtn.classList.add('tx-item__delete');
+      deleteBtn.setAttribute('data-action', 'deleteTx');
+      deleteBtn.setAttribute('title', 'Eliminar');
+      deleteBtn.setAttribute('aria-label', 'Eliminar');
+      deleteBtn.textContent = '✕';
+
+      item.appendChild(info);
+      item.appendChild(amountSpan);
+      item.appendChild(deleteBtn);
+      fragment.appendChild(item);
     });
 
-    dom.incomeList.innerHTML = html;
+    dom.incomeList.appendChild(fragment);
     dom.totalIncome.textContent = formatCLP(total);
   }
 
@@ -278,28 +317,64 @@
     var monthTxs = getMonthTransactions(state.selectedMonth);
     var expenseTxs = monthTxs.filter(function (tx) { return tx.type === 'expense'; });
     var total = 0;
-    var html = '';
+
+    // Limpiar contenido previo de forma segura
+    while (dom.expenseList.firstChild) {
+      dom.expenseList.removeChild(dom.expenseList.firstChild);
+    }
 
     if (expenseTxs.length === 0) {
-      dom.expenseList.innerHTML = '<p class="tx-group__empty">No hay egresos registrados este mes</p>';
+      var emptyMsg = document.createElement('p');
+      emptyMsg.classList.add('tx-group__empty');
+      emptyMsg.textContent = 'No hay egresos registrados este mes';
+      dom.expenseList.appendChild(emptyMsg);
       dom.totalExpenses.textContent = formatCLP(0);
       return;
     }
 
+    var fragment = document.createDocumentFragment();
+
     expenseTxs.forEach(function (tx) {
       total += tx.amount;
-      var desc = tx.description ? '<p class="tx-item__desc">' + sanitizeString(tx.description) + '</p>' : '';
-      html += '<div class="tx-item" data-id="' + tx.id + '">' +
-        '<div class="tx-item__info">' +
-          '<span class="tx-item__category">' + sanitizeString(tx.category) + '</span>' +
-          desc +
-        '</div>' +
-        '<span class="tx-item__amount tx-item__amount--expense">' + formatCLP(tx.amount) + '</span>' +
-        '<button class="tx-item__delete" data-action="deleteTx" title="Eliminar" aria-label="Eliminar">✕</button>' +
-      '</div>';
+
+      var item = document.createElement('div');
+      item.classList.add('tx-item');
+      item.setAttribute('data-id', tx.id);
+
+      var info = document.createElement('div');
+      info.classList.add('tx-item__info');
+
+      var catSpan = document.createElement('span');
+      catSpan.classList.add('tx-item__category');
+      catSpan.textContent = tx.category;
+      info.appendChild(catSpan);
+
+      if (tx.description) {
+        var descP = document.createElement('p');
+        descP.classList.add('tx-item__desc');
+        descP.textContent = tx.description;
+        info.appendChild(descP);
+      }
+
+      var amountSpan = document.createElement('span');
+      amountSpan.classList.add('tx-item__amount');
+      amountSpan.classList.add('tx-item__amount--expense');
+      amountSpan.textContent = formatCLP(tx.amount);
+
+      var deleteBtn = document.createElement('button');
+      deleteBtn.classList.add('tx-item__delete');
+      deleteBtn.setAttribute('data-action', 'deleteTx');
+      deleteBtn.setAttribute('title', 'Eliminar');
+      deleteBtn.setAttribute('aria-label', 'Eliminar');
+      deleteBtn.textContent = '✕';
+
+      item.appendChild(info);
+      item.appendChild(amountSpan);
+      item.appendChild(deleteBtn);
+      fragment.appendChild(item);
     });
 
-    dom.expenseList.innerHTML = html;
+    dom.expenseList.appendChild(fragment);
     dom.totalExpenses.textContent = formatCLP(total);
   }
 
@@ -469,6 +544,11 @@
         showToast('Ingresa un monto válido mayor a 0');
         return;
       }
+      // Validación Regex: solo letras, números, espacios y caracteres permitidos
+      if (description && !VALID_TEXT_REGEX.test(description)) {
+        showToast('La descripción contiene caracteres no permitidos');
+        return;
+      }
 
       var transaction = {
         id: generateId(),
@@ -560,6 +640,11 @@
         showToast('Ingresa un nombre para la categoría');
         return;
       }
+      // Validación Regex: solo letras, números, espacios y caracteres permitidos
+      if (!VALID_TEXT_REGEX.test(name)) {
+        showToast('El nombre contiene caracteres no permitidos');
+        return;
+      }
       if (categories.indexOf(name) !== -1) {
         showToast('Esa categoría ya existe');
         return;
@@ -600,6 +685,12 @@
             var newName = editInput.value.trim();
             if (!newName) {
               showToast('El nombre no puede estar vacío');
+              editInput.focus();
+              return;
+            }
+            // Validación Regex: solo letras, números, espacios y caracteres permitidos
+            if (!VALID_TEXT_REGEX.test(newName)) {
+              showToast('El nombre contiene caracteres no permitidos');
               editInput.focus();
               return;
             }
