@@ -1,4 +1,4 @@
-# 💰 Wallet.js — Control Financiero Personal
+#  Wallet.js — Control Financiero Personal
 
 Aplicación web de control de finanzas personales construida con **HTML5**, **CSS3** y **Vanilla JavaScript**. Permite registrar ingresos y egresos por mes, definir saldos iniciales independientes y comparar visualmente los gastos entre meses mediante gráficos de barras horizontales.
 
@@ -6,7 +6,7 @@ Aplicación web de control de finanzas personales construida con **HTML5**, **CS
 
 ---
 
-## ✨ Características
+##  Características
 
 - **Registro de transacciones** — Ingresos y egresos organizados por categorías personalizables.
 - **Navegación por meses** — Cambia de mes libremente y cada mes mantiene sus propios datos.
@@ -20,7 +20,7 @@ Aplicación web de control de finanzas personales construida con **HTML5**, **CS
 
 ---
 
-## 🛠️ Tecnologías
+##  Tecnologías
 
 | Tecnología | Uso |
 |------------|-----|
@@ -32,7 +32,7 @@ Aplicación web de control de finanzas personales construida con **HTML5**, **CS
 
 ---
 
-## 📁 Estructura del Proyecto
+##  Estructura del Proyecto
 
 ```
 Proyecto_Formulario/
@@ -44,9 +44,9 @@ Proyecto_Formulario/
 
 ---
 
-## 📝 Registro de Cambios
+##  Registro de Cambios
 
-### 🎨 Icono SVG de Moneda de Dólar
+###  Icono SVG de Moneda de Dólar
 
 Se reemplazó el icono genérico (círculo + texto `$`) por un **SVG artesanal de moneda** con múltiples capas visuales:
 
@@ -61,7 +61,7 @@ Se reemplazó el icono genérico (círculo + texto `$`) por un **SVG artesanal d
 
 ---
 
-### 🐛 Fix: Transacciones se Guardaban Siempre en el Mes Actual
+###  Fix: Transacciones se Guardaban Siempre en el Mes Actual
 
 **Problema:** Al navegar a otro mes (ej. Julio) y agregar una transacción, esta se guardaba con la fecha de hoy (`getToday()`), por lo que siempre caía en el mes actual (Junio) sin importar el mes seleccionado.
 
@@ -74,7 +74,7 @@ Se reemplazó el icono genérico (círculo + texto `$`) por un **SVG artesanal d
 
 ---
 
-### 🐛 Fix: Saldo Inicial Independiente por Mes
+###  Fix: Saldo Inicial Independiente por Mes
 
 **Problema:** `initialBalance` era un número único global compartido por todos los meses. Al cambiar de mes, el saldo inicial se mantenía igual.
 
@@ -89,7 +89,7 @@ Incluye **migración automática**: si existían datos con el formato antiguo (n
 
 ---
 
-### 📊 Comparación de Meses con Barras Paralelas
+###  Comparación de Meses con Barras Paralelas
 
 Se rediseñó completamente la sección de comparación de gráficos:
 
@@ -102,7 +102,7 @@ Se rediseñó completamente la sección de comparación de gráficos:
 
 ---
 
-## 🚀 Uso
+##  Uso
 
 1. Abre `index.html` en cualquier navegador moderno.
 2. Define el **saldo inicial** del mes.
@@ -112,8 +112,8 @@ Se rediseñó completamente la sección de comparación de gráficos:
 
 ---
 
-## 👤 Autor
+##  Autor
 
-**Cristobal Morgado**
+**Cristóbal Morgado**
 
 ---
