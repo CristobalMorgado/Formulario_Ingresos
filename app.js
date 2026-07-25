@@ -813,6 +813,16 @@
 
   function setupEvents() {
     // Initial balance
+    dom.initialBalanceInput.addEventListener('focus', function () {
+      var raw = this.value.replace(/\./g, '').replace(/,/g, '');
+      if (!raw || Number(raw) === 0) {
+        this.value = '';
+      } else {
+        // Select existing value for faster replacement
+        try { this.select(); } catch (e) {}
+      }
+    });
+
     dom.initialBalanceInput.addEventListener('blur', function () {
       var raw = this.value.replace(/\./g, '').replace(/,/g, '');
       var val = validateAmount(raw);
@@ -838,6 +848,58 @@
       if (!/^[0-9]$/.test(e.key)) {
         e.preventDefault();
       }
+    });
+
+    // Make available balance editable inline when clicked (temporary input overlay)
+    dom.availableBalance.style.cursor = 'text';
+    dom.availableBalance.addEventListener('click', function () {
+      var span = dom.availableBalance;
+      // prevent opening multiple editors
+      if (document.getElementById('availableBalanceEdit')) return;
+
+      // Current numeric value (without currency and separators)
+      var current = span.textContent.replace(/\$/g, '').replace(/\./g, '').replace(/,/g, '').trim();
+      var input = document.createElement('input');
+      input.type = 'text';
+      input.id = 'availableBalanceEdit';
+      input.className = 'balance__input';
+      input.inputMode = 'numeric';
+      input.autocomplete = 'off';
+      input.value = (current === '' || Number(current) === 0) ? '' : current;
+
+      // hide span visually but keep it in DOM for reference
+      span.style.display = 'none';
+      span.parentNode.insertBefore(input, span.nextSibling);
+      input.focus();
+
+      input.addEventListener('blur', function () {
+        var raw = this.value.replace(/\./g, '').replace(/,/g, '');
+        var val = validateAmount(raw);
+        if (val === null) val = 0;
+        // Update initial balance for the month to reflect the editable available amount
+        state.initialBalances[state.selectedMonth] = val;
+        saveState();
+        render();
+        // clean up editor
+        if (input.parentNode) input.parentNode.removeChild(input);
+        span.style.display = '';
+      });
+
+      input.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          this.blur();
+        }
+        if (e.key === 'Escape') {
+          // cancel edit
+          if (input.parentNode) input.parentNode.removeChild(input);
+          span.style.display = '';
+        }
+        // restrict to digits
+        if (!e.ctrlKey && !e.metaKey && !e.altKey && e.key.length === 1 && !/^[0-9]$/.test(e.key)) {
+          e.preventDefault();
+        }
+      });
     });
 
     // Month navigation

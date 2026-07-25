@@ -1,4 +1,4 @@
-# 💰 Wallet.js — Control Financiero Personal
+# 💰 Billetera.JS — Control Financiero Personal
 
 Aplicación web de control de finanzas personales construida con **HTML5**, **CSS3** y **Vanilla JavaScript**. Permite registrar ingresos y egresos por mes, definir saldos iniciales independientes y comparar visualmente los gastos entre meses mediante gráficos de barras horizontales.
 

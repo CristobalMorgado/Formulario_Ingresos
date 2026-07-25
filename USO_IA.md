@@ -2,7 +2,7 @@
 
 ## Contexto
 
-Durante el desarrollo de **Wallet.js — Control Financiero Personal**, se utilizó Inteligencia Artificial como herramienta de apoyo para asegurar las mejores prácticas de **código limpio**, **seguro** y **mantenible**. La IA fue utilizada como un asistente de desarrollo que permitió optimizar la calidad del código siguiendo estándares profesionales de la industria, particularmente en las áreas de **seguridad front-end** y **validación de datos de entrada**.
+Durante el desarrollo de **Billetera.JS — Control Financiero Personal**, se utilizó Inteligencia Artificial como herramienta de apoyo para asegurar las mejores prácticas de **código limpio**, **seguro** y **mantenible**. La IA fue utilizada como un asistente de desarrollo que permitió optimizar la calidad del código siguiendo estándares profesionales de la industria, particularmente en las áreas de **seguridad front-end** y **validación de datos de entrada**.
 
 > **Nota:** La IA no generó la aplicación desde cero. Fue utilizada para refactorizar y mejorar código existente, aplicando patrones de seguridad y buenas prácticas que un equipo senior de desarrollo implementaría en producción.
 
