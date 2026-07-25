@@ -64,6 +64,9 @@
     dom.comparePrev = document.getElementById('comparePrev');
     dom.compareNext = document.getElementById('compareNext');
     dom.chartLegend = document.getElementById('chartLegend');
+    dom.clearAllExpenses = document.getElementById('clearAllExpenses');
+    dom.indicatorsGrid   = document.getElementById('indicatorsGrid');
+    dom.indicatorsDate   = document.getElementById('indicatorsDate');
   }
 
   // ============================================================
@@ -588,7 +591,7 @@
         var color = DONUT_COLORS[i % DONUT_COLORS.length];
         compLeg +=
           '<div class="donut-legend__item donut-legend__item--compare">' +
-            '<span class="donut-legend__dot" style="background:' + color + '"></span>' +
+            '<span class="donut-legend__pill" style="background:' + color + ';box-shadow:0 0 8px ' + color + '66"></span>' +
             '<span class="donut-legend__cat">' + sanitizeString(cat) + '</span>' +
             '<span class="donut-legend__amount">' + sanitizeString(formatCLP(vA)) + '</span>' +
             '<span class="donut-legend__amount donut-legend__amount--compare">' + sanitizeString(formatCLP(vB)) + '</span>' +
@@ -708,6 +711,27 @@
       saveState();
       render();
       showToast('Registro eliminado');
+    }
+  }
+
+  function clearAllMonthExpenses() {
+    var expenseTxs = getMonthTransactions(state.selectedMonth).filter(function (tx) {
+      return tx.type === 'expense';
+    });
+
+    if (expenseTxs.length === 0) {
+      showToast('No hay gastos para eliminar este mes');
+      return;
+    }
+
+    var monthName = monthKeyToLabel(state.selectedMonth);
+    if (confirm('¿Estás seguro de que deseas eliminar TODOS los gastos de ' + monthName + '?')) {
+      state.transactions = state.transactions.filter(function (tx) {
+        return !(tx.type === 'expense' && isSameMonth(tx, state.selectedMonth));
+      });
+      saveState();
+      render();
+      showToast('Todos los gastos de ' + monthName + ' fueron eliminados');
     }
   }
 
@@ -1063,6 +1087,11 @@
     dom.addIncome.addEventListener('click', function () { addTransaction('income'); });
     dom.addExpense.addEventListener('click', function () { addTransaction('expense'); });
 
+    // Clear all expenses button
+    if (dom.clearAllExpenses) {
+      dom.clearAllExpenses.addEventListener('click', clearAllMonthExpenses);
+    }
+
     // Manage categories
     dom.manageIncomeCats.addEventListener('click', function () { manageCategories('income'); });
     dom.manageExpenseCats.addEventListener('click', function () { manageCategories('expense'); });
@@ -1117,6 +1146,69 @@
   }
 
   // ============================================================
+  // INDICADORES ECONÓMICOS DIARIOS (mindicador.cl API)
+  // ============================================================
+  function fetchEconomicIndicators() {
+    if (!dom.indicatorsGrid) return;
+
+    fetch('https://mindicador.cl/api')
+      .then(function (response) {
+        if (!response.ok) throw new Error('Error al consultar servidor');
+        return response.json();
+      })
+      .then(function (data) {
+        if (data && data.fecha) {
+          var dateObj = new Date(data.fecha);
+          var formattedDate = dateObj.toLocaleDateString('es-CL', { day: '2-digit', month: '2-digit', year: 'numeric' });
+          if (dom.indicatorsDate) {
+            dom.indicatorsDate.textContent = 'Chile (' + formattedDate + ')';
+          }
+        }
+        renderIndicators(data);
+      })
+      .catch(function () {
+        if (dom.indicatorsGrid) {
+          dom.indicatorsGrid.innerHTML =
+            '<div class="indicators__error">' +
+              '⚠️ No se pudieron obtener los indicadores económicos en este momento.' +
+            '</div>';
+        }
+      });
+  }
+
+  function renderIndicators(data) {
+    var items = [
+      { key: 'dolar', label: 'Dólar Observado', icon: '💵', prefix: '$', decimals: 2 },
+      { key: 'uf', label: 'UF', icon: '🏠', prefix: '$', decimals: 2 },
+      { key: 'euro', label: 'Euro', icon: '💶', prefix: '$', decimals: 2 },
+      { key: 'utm', label: 'UTM', icon: '📊', prefix: '$', decimals: 0 },
+      { key: 'ipc', label: 'IPC', icon: '📈', suffix: '%', decimals: 2 }
+    ];
+
+    var html = '';
+    items.forEach(function (item) {
+      var ind = data[item.key];
+      if (!ind || typeof ind.valor !== 'number') return;
+      var formattedVal = ind.valor.toLocaleString('es-CL', {
+        minimumFractionDigits: item.decimals,
+        maximumFractionDigits: item.decimals
+      });
+      var displayVal = (item.prefix ? item.prefix + ' ' : '') + formattedVal + (item.suffix ? item.suffix : '');
+
+      html +=
+        '<div class="indicator-card">' +
+          '<div class="indicator-card__icon">' + item.icon + '</div>' +
+          '<div class="indicator-card__content">' +
+            '<span class="indicator-card__label">' + sanitizeString(item.label) + '</span>' +
+            '<span class="indicator-card__val">' + sanitizeString(displayVal) + '</span>' +
+          '</div>' +
+        '</div>';
+    });
+
+    dom.indicatorsGrid.innerHTML = html;
+  }
+
+  // ============================================================
   // INIT
   // ============================================================
 
@@ -1125,6 +1217,7 @@
     loadState();
     render();
     setupEvents();
+    fetchEconomicIndicators();
   }
 
   document.addEventListener('DOMContentLoaded', init);

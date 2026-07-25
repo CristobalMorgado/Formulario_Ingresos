@@ -25,7 +25,7 @@
         </div>
       </div>
       <div class="month-nav">
-        <span class="month-nav__hint">Elige el mes</span>
+        <span class="month-nav__hint">Mes</span>
         <div class="month-picker">
           <button class="month-picker__trigger" id="monthPickerBtn" aria-haspopup="true" aria-expanded="false">
             <span id="monthLabel">Junio 2026</span>
@@ -91,6 +91,7 @@
               <span class="tx-group__icon" aria-hidden="true">↘</span> Gastos
             </h2>
             <div class="tx-group__actions">
+              <button class="btn btn--outline-danger btn--sm" id="clearAllExpenses" title="Eliminar todos los gastos del mes">Eliminar gastos</button>
               <button class="btn btn--sm btn--ghost" id="manageExpenseCats" title="Administrar categorías de gastos" aria-label="Administrar categorías">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
               </button>
@@ -118,13 +119,30 @@
         </div>
         <div class="chart__compare-panel" id="comparePanel" hidden>
           <span class="chart__compare-hint">Elija el mes a comparar</span>
-          <button class="month-nav__btn" id="comparePrev" aria-label="Mes anterior">&lsaquo;</button>
-          <span class="month-nav__label" id="compareMonthLabel">Mayo 2026</span>
-          <button class="month-nav__btn" id="compareNext" aria-label="Mes siguiente">&rsaquo;</button>
+          <button class="chart__compare-arrow-btn" id="comparePrev" aria-label="Mes anterior">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+          </button>
+          <span class="chart__compare-month-label" id="compareMonthLabel">Mayo 2026</span>
+          <button class="chart__compare-arrow-btn" id="compareNext" aria-label="Mes siguiente">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+          </button>
         </div>
         <div class="chart__legend" id="chartLegend" hidden></div>
         <div class="chart__bars" id="chartBars">
           <p class="tx-group__empty">No hay gastos para mostrar</p>
+        </div>
+      </section>
+
+      <!-- INDICADORES ECONÓMICOS DIARIOS -->
+      <section class="indicators" aria-label="Indicadores económicos diarios">
+        <div class="indicators__header">
+          <h2 class="indicators__title">
+            <span class="indicators__icon" aria-hidden="true">📈</span> Indicadores Económicos Diarios
+          </h2>
+          <span class="indicators__badge" id="indicatorsDate">Chile (mindicador.cl)</span>
+        </div>
+        <div class="indicators__grid" id="indicatorsGrid">
+          <div class="indicators__loading">Cargando indicadores...</div>
         </div>
       </section>
 
