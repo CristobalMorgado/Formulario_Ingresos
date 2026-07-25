@@ -68,8 +68,9 @@
   // UTILITY FUNCTIONS
   // ============================================================
 
-  function formatCLP(amount) {
-    return '$' + Math.round(amount).toLocaleString('es-CL');
+  function formatCLP(amount, spaceAfterSymbol) {
+    var symbol = spaceAfterSymbol ? '$ ' : '$';
+    return symbol + Math.round(amount).toLocaleString('es-CL');
   }
 
   function generateId() {
@@ -241,7 +242,7 @@
       else totalExp += tx.amount;
     });
     var available = getInitialBalance(state.selectedMonth) + totalInc - totalExp;
-    dom.availableBalance.textContent = formatCLP(available);
+    dom.availableBalance.textContent = formatCLP(available, true);
   }
 
   function updateInitialBalanceInput() {
