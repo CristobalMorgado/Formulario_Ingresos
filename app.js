@@ -1,5 +1,5 @@
 /* ============================================================
-   My Money — Control de Finanzas Personales
+   Billetera.JS — Control de Finanzas Personales
    Aplicación principal (Vanilla JS)
    ============================================================ */
 
@@ -12,8 +12,8 @@
   var STORAGE_KEY = 'myMoneyData';
   var MONTHS = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
 
-  var DEFAULT_INCOME_CATS = ['Sueldo', 'Freelance', 'Honorarios', 'Otros'];
-  var DEFAULT_EXPENSE_CATS = ['Mercadería', 'Agua', 'Tiendas Comerciales', 'Ahorro', 'Bip', 'Spotify', 'Youtube'];
+  var DEFAULT_INCOME_CATS = ['Sueldo', 'Horas Extras', 'Otros'];
+  var DEFAULT_EXPENSE_CATS = ['ENEL', 'Smapa', 'Hija', 'Movistar', 'Wom', 'Gas', 'Hites', 'BIP'];
 
   // Regex para validación de texto: letras, números, espacios y caracteres especiales del español
   var VALID_TEXT_REGEX = /^[a-zA-Z0-9\s.,\-ñÑáéíóúÁÉÍÓÚ]+$/;
@@ -39,9 +39,11 @@
   function cacheDom() {
     dom.initialBalanceInput = document.getElementById('initialBalance');
     dom.availableBalance = document.getElementById('availableBalance');
-    dom.monthLabel = document.getElementById('monthLabel');
-    dom.prevMonth = document.getElementById('prevMonth');
-    dom.nextMonth = document.getElementById('nextMonth');
+    dom.monthLabel      = document.getElementById('monthLabel');
+    dom.monthPickerBtn  = document.getElementById('monthPickerBtn');
+    dom.monthDropdown   = document.getElementById('monthDropdown');
+    dom.prevYear        = document.getElementById('prevYear');
+    dom.nextYear        = document.getElementById('nextYear');
     dom.incomeList = document.getElementById('incomeList');
     dom.expenseList = document.getElementById('expenseList');
     dom.totalIncome = document.getElementById('totalIncome');
@@ -327,7 +329,7 @@
     if (expenseTxs.length === 0) {
       var emptyMsg = document.createElement('p');
       emptyMsg.classList.add('tx-group__empty');
-      emptyMsg.textContent = 'No hay egresos registrados este mes';
+      emptyMsg.textContent = 'No hay gastos registrados este mes';
       dom.expenseList.appendChild(emptyMsg);
       dom.totalExpenses.textContent = formatCLP(0);
       return;
@@ -390,6 +392,13 @@
     }
   }
 
+  // Paleta de colores para el donut
+  var DONUT_COLORS = [
+    '#d946ef', '#06b6d4', '#10b981', '#f59e0b', '#ef4444',
+    '#8b5cf6', '#ec4899', '#14b8a6', '#f97316', '#6366f1',
+    '#84cc16', '#e879f9', '#22d3ee', '#34d399', '#fbbf24'
+  ];
+
   function getExpenseTotals(monthKey) {
     var txs = getMonthTransactions(monthKey).filter(function (tx) { return tx.type === 'expense'; });
     var totals = {};
@@ -400,23 +409,158 @@
     return totals;
   }
 
+  function buildDonutSVG(totals, size, label, idSuffix) {
+    var cats = Object.keys(totals).sort(function (a, b) { return totals[b] - totals[a]; });
+    var total = cats.reduce(function (s, c) { return s + totals[c]; }, 0);
+    if (total === 0 || cats.length === 0) return null;
+
+    idSuffix = idSuffix || 'main';
+
+    var cx      = size / 2;
+    var cy      = size / 2;
+    var R       = size * 0.43;        // radio exterior
+    var r       = size * 0.29;        // radio interior (hueco)
+    var strokeW = R - r;              // grosor del anillo
+    var rMid    = r + strokeW / 2;    // radio de trazo
+    var circ    = 2 * Math.PI * rMid;
+
+    // SVG filter para el glow de cada segmento (suave y contenido)
+    var filterId = 'glow-' + idSuffix;
+    var defs =
+      '<defs>' +
+        '<filter id="' + filterId + '" x="-25%" y="-25%" width="150%" height="150%">' +
+          '<feGaussianBlur in="SourceGraphic" stdDeviation="2.5" result="blur"/>' +
+        '</filter>' +
+      '</defs>';
+
+    var glowParts = [];   
+    var mainParts = [];   
+    // Empezamos en 0. Rotaremos TODO el grupo -90 grados para que el 0 sea a las 12 en punto.
+    // Esto evita el bug donde los segmentos se cortan al pasar por el inicio del path.
+    var offset = 0;  
+
+    cats.forEach(function (cat, i) {
+      var pct     = totals[cat] / total;
+      var dashArr = pct * circ;
+      if (dashArr <= 0) return; // omitir categorías en 0
+      
+      var dashOff = -offset;
+      var color   = DONUT_COLORS[i % DONUT_COLORS.length];
+      var delay   = (i * 0.08).toFixed(2) + 's';
+
+      // Glow (brillo suave, bien contenido)
+      glowParts.push(
+        '<circle cx="' + cx + '" cy="' + cy + '" r="' + rMid + '"' +
+        ' fill="none" stroke="' + color + '" stroke-width="' + (strokeW * 1.4).toFixed(1) + '"' +
+        ' stroke-linecap="butt"' +
+        ' stroke-dasharray="' + dashArr.toFixed(2) + ' ' + circ.toFixed(2) + '"' +
+        ' stroke-dashoffset="' + dashOff.toFixed(2) + '"' +
+        ' opacity="0.15" filter="url(#' + filterId + ')"' +
+        ' class="donut__glow" style="animation-delay:' + delay + '"/>'
+      );
+
+      // Segmento principal (uno al lado de otro, stroke-linecap: butt sin espacios)
+      mainParts.push(
+        '<circle cx="' + cx + '" cy="' + cy + '" r="' + rMid + '"' +
+        ' fill="none" stroke="' + color + '" stroke-width="' + strokeW + '"' +
+        ' stroke-linecap="butt"' +
+        ' stroke-dasharray="' + dashArr.toFixed(2) + ' ' + circ.toFixed(2) + '"' +
+        ' stroke-dashoffset="' + dashOff.toFixed(2) + '"' +
+        ' class="donut__slice" style="animation-delay:' + delay + '"/>'
+      );
+
+      offset += dashArr;
+    });
+
+    // Círculo interior: cubre exactamente el hueco de la donut
+    var holeR   = r + 2; 
+    var innerEl =
+      '<circle cx="' + cx + '" cy="' + cy + '" r="' + holeR.toFixed(1) + '"' +
+      ' fill="rgba(0,0,0,0.15)"/>' +
+      '<circle cx="' + cx + '" cy="' + cy + '" r="' + (holeR - 2).toFixed(1) + '"' +
+      ' fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="1"/>';
+
+    // Texto central
+    var fsLabel  = Math.round(size * 0.082);
+    var fsAmount = Math.round(size * 0.07);
+
+    var textEl =
+      '<text x="' + cx + '" y="' + (cy - fsLabel * 0.45).toFixed(1) + '"' +
+      ' text-anchor="middle" class="donut__center-label" font-size="' + fsLabel + '">' +
+        sanitizeString(label) +
+      '</text>' +
+      '<text x="' + cx + '" y="' + (cy + fsAmount * 1.2).toFixed(1) + '"' +
+      ' text-anchor="middle" class="donut__center-amount" font-size="' + fsAmount + '">' +
+        sanitizeString(formatCLP(total)) +
+      '</text>';
+
+    return {
+      svg:
+        '<svg class="donut__svg" width="' + size + '" height="' + size +
+        '" viewBox="0 0 ' + size + ' ' + size + '">' +
+          defs +
+          // Pista de fondo
+          '<circle cx="' + cx + '" cy="' + cy + '" r="' + rMid +
+          '" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="' + strokeW + '"/>' +
+          // Grupo rotado a las 12 en punto
+          '<g transform="rotate(-90, ' + cx + ', ' + cy + ')">' +
+            glowParts.join('') +
+            mainParts.join('') +
+          '</g>' +
+          innerEl +
+          textEl +
+        '</svg>',
+      cats:  cats,
+      total: total
+    };
+  }
+
   function renderChart() {
     var isComparing = state.compareActive === true;
-
-    // Hide legend always first, then show if comparing
     dom.chartLegend.setAttribute('hidden', '');
 
     var primaryTotals = getExpenseTotals(state.selectedMonth);
     var compareTotals = isComparing ? getExpenseTotals(state.compareMonth) : null;
 
     var allCats = Object.keys(primaryTotals);
-
     if (isComparing && compareTotals) {
       Object.keys(compareTotals).forEach(function (cat) {
         if (allCats.indexOf(cat) === -1) allCats.push(cat);
       });
+    }
 
-      // Build legend only in compare mode
+    if (allCats.length === 0) {
+      dom.chartBars.innerHTML = '<p class="tx-group__empty">No hay gastos para mostrar</p>';
+      return;
+    }
+
+    // ---- MODO SIMPLE (un solo mes) ----
+    if (!isComparing) {
+      var result = buildDonutSVG(primaryTotals, 280, 'Gastos', 'p');
+      if (!result) {
+        dom.chartBars.innerHTML = '<p class="tx-group__empty">No hay gastos para mostrar</p>';
+        return;
+      }
+      var legendHTML = '';
+      result.cats.forEach(function (cat, i) {
+        var pct   = ((primaryTotals[cat] / result.total) * 100).toFixed(1);
+        var color = DONUT_COLORS[i % DONUT_COLORS.length];
+        legendHTML +=
+          '<div class="donut-legend__item">' +
+            '<span class="donut-legend__pill" style="background:' + color + ';box-shadow:0 0 8px ' + color + '66"></span>' +
+            '<span class="donut-legend__cat">' + sanitizeString(cat) + '</span>' +
+            '<span class="donut-legend__amount">' + sanitizeString(formatCLP(primaryTotals[cat])) + '</span>' +
+            '<span class="donut-legend__pct">' + pct + '%</span>' +
+          '</div>';
+      });
+      dom.chartBars.innerHTML =
+        '<div class="donut__wrapper">' +
+          result.svg +
+          '<div class="donut-legend">' + legendHTML + '</div>' +
+        '</div>';
+
+    // ---- MODO COMPARACIÓN (dos donuts) ----
+    } else {
       dom.chartLegend.removeAttribute('hidden');
       dom.chartLegend.innerHTML =
         '<div class="chart__legend-item">' +
@@ -427,67 +571,39 @@
           '<span class="chart__legend-swatch chart__legend-swatch--compare"></span>' +
           sanitizeString(monthKeyToLabel(state.compareMonth)) +
         '</div>';
-    }
 
-    if (allCats.length === 0) {
-      dom.chartBars.innerHTML = '<p class="tx-group__empty">No hay egresos para mostrar</p>';
-      return;
-    }
+      var resA = buildDonutSVG(primaryTotals, 210, monthKeyToLabel(state.selectedMonth).split(' ')[0], 'ca');
+      var resB = buildDonutSVG(compareTotals || {}, 210, monthKeyToLabel(state.compareMonth).split(' ')[0], 'cb');
+      var emptyMini = '<div class="donut__empty-mini"><p class="tx-group__empty" style="font-size:0.75rem">Sin datos</p></div>';
 
-    // Determine global max for consistent bar scaling
-    var maxAmount = 0;
-    allCats.forEach(function (cat) {
-      var val = primaryTotals[cat] || 0;
-      if (isComparing && compareTotals) val = Math.max(val, compareTotals[cat] || 0);
-      if (val > maxAmount) maxAmount = val;
-    });
+      var allCatsSorted = allCats.slice().sort(function (a, b) {
+        return ((primaryTotals[b] || 0) + (compareTotals ? (compareTotals[b] || 0) : 0)) -
+               ((primaryTotals[a] || 0) + (compareTotals ? (compareTotals[a] || 0) : 0));
+      });
 
-    var sorted = allCats.slice().sort(function (a, b) {
-      var aVal = primaryTotals[a] || 0;
-      var bVal = primaryTotals[b] || 0;
-      if (isComparing && compareTotals) {
-        aVal = Math.max(aVal, compareTotals[a] || 0);
-        bVal = Math.max(bVal, compareTotals[b] || 0);
-      }
-      return bVal - aVal;
-    });
+      var compLeg = '';
+      allCatsSorted.forEach(function (cat, i) {
+        var vA = primaryTotals[cat] || 0;
+        var vB = compareTotals ? (compareTotals[cat] || 0) : 0;
+        var color = DONUT_COLORS[i % DONUT_COLORS.length];
+        compLeg +=
+          '<div class="donut-legend__item donut-legend__item--compare">' +
+            '<span class="donut-legend__dot" style="background:' + color + '"></span>' +
+            '<span class="donut-legend__cat">' + sanitizeString(cat) + '</span>' +
+            '<span class="donut-legend__amount">' + sanitizeString(formatCLP(vA)) + '</span>' +
+            '<span class="donut-legend__amount donut-legend__amount--compare">' + sanitizeString(formatCLP(vB)) + '</span>' +
+          '</div>';
+      });
 
-    var html = '';
-    sorted.forEach(function (cat) {
-      var primaryVal = primaryTotals[cat] || 0;
-      var primaryPct = maxAmount > 0 ? (primaryVal / maxAmount) * 100 : 0;
-
-      if (isComparing && compareTotals) {
-        var compareVal = compareTotals[cat] || 0;
-        var comparePct = maxAmount > 0 ? (compareVal / maxAmount) * 100 : 0;
-
-        html += '<div class="chart-bar chart-bar--compare">' +
-          '<span class="chart-bar__label" title="' + sanitizeString(cat) + '">' + sanitizeString(cat) + '</span>' +
-          '<div class="chart-bar__row">' +
-            '<div class="chart-bar__track">' +
-              '<div class="chart-bar__fill" style="width:' + primaryPct + '%"></div>' +
-            '</div>' +
-            '<span class="chart-bar__amount">' + formatCLP(primaryVal) + '</span>' +
+      dom.chartBars.innerHTML =
+        '<div class="donut__wrapper donut__wrapper--compare">' +
+          '<div class="donut__pair">' +
+            (resA ? resA.svg : emptyMini) +
+            (resB ? resB.svg : emptyMini) +
           '</div>' +
-          '<div class="chart-bar__row">' +
-            '<div class="chart-bar__track">' +
-              '<div class="chart-bar__fill chart-bar__fill--compare" style="width:' + comparePct + '%"></div>' +
-            '</div>' +
-            '<span class="chart-bar__amount chart-bar__amount--compare">' + formatCLP(compareVal) + '</span>' +
-          '</div>' +
+          '<div class="donut-legend">' + compLeg + '</div>' +
         '</div>';
-      } else {
-        html += '<div class="chart-bar">' +
-          '<span class="chart-bar__label" title="' + sanitizeString(cat) + '">' + sanitizeString(cat) + '</span>' +
-          '<div class="chart-bar__track">' +
-            '<div class="chart-bar__fill" style="width:' + primaryPct + '%"></div>' +
-          '</div>' +
-          '<span class="chart-bar__amount">' + formatCLP(primaryVal) + '</span>' +
-        '</div>';
-      }
-    });
-
-    dom.chartBars.innerHTML = html;
+    }
   }
 
   // ============================================================
@@ -495,7 +611,7 @@
   // ============================================================
 
   function addTransaction(type) {
-    var title = type === 'income' ? 'Agregar Ingreso' : 'Agregar Egreso';
+    var title = type === 'income' ? 'Agregar Ingreso' : 'Agregar Gasto';
     var categories = type === 'income' ? state.incomeCategories : state.expenseCategories;
     var catOptions = '';
 
@@ -564,7 +680,7 @@
       saveState();
       render();
       closeModal();
-      showToast((type === 'income' ? 'Ingreso' : 'Egreso') + ' registrado correctamente');
+      showToast((type === 'income' ? 'Ingreso' : 'Gasto') + ' registrado correctamente');
     });
 
     document.getElementById('modalCancel').addEventListener('click', closeModal);
@@ -600,7 +716,7 @@
   // ============================================================
 
   function manageCategories(type) {
-    var title = type === 'income' ? 'Administrar Categorías de Ingresos' : 'Administrar Categorías de Egresos';
+    var title = type === 'income' ? 'Administrar Categorías de Ingresos' : 'Administrar Categorías de Gastos';
     var categories = type === 'income' ? state.incomeCategories : state.expenseCategories;
     var listHtml = '';
 
@@ -851,69 +967,96 @@
       }
     });
 
-    // Make available balance editable inline when clicked (temporary input overlay)
-    dom.availableBalance.style.cursor = 'text';
-    dom.availableBalance.addEventListener('click', function () {
-      var span = dom.availableBalance;
-      // prevent opening multiple editors
-      if (document.getElementById('availableBalanceEdit')) return;
 
-      // Current numeric value (without currency and separators)
-      var current = span.textContent.replace(/\$/g, '').replace(/\./g, '').replace(/,/g, '').trim();
-      var input = document.createElement('input');
-      input.type = 'text';
-      input.id = 'availableBalanceEdit';
-      input.className = 'balance__input';
-      input.inputMode = 'numeric';
-      input.autocomplete = 'off';
-      input.value = (current === '' || Number(current) === 0) ? '' : current;
+    // ---- Selector de mes (dropdown) ----
+    function getPickerYear() {
+      return parseInt(state.selectedMonth.split('-')[0], 10);
+    }
 
-      // hide span visually but keep it in DOM for reference
-      span.style.display = 'none';
-      span.parentNode.insertBefore(input, span.nextSibling);
-      input.focus();
+    function buildMonthDropdown() {
+      var year   = getPickerYear();
+      var selMon = parseInt(state.selectedMonth.split('-')[1], 10) - 1;
+      dom.monthDropdown.innerHTML = '';
 
-      input.addEventListener('blur', function () {
-        var raw = this.value.replace(/\./g, '').replace(/,/g, '');
-        var val = validateAmount(raw);
-        if (val === null) val = 0;
-        // Update initial balance for the month to reflect the editable available amount
-        state.initialBalances[state.selectedMonth] = val;
+      // Fila del año dentro del dropdown
+      var yearRow = document.createElement('div');
+      yearRow.className = 'month-picker__year-row';
+
+      var btnPY = document.createElement('button');
+      btnPY.className = 'month-picker__year-btn';
+      btnPY.textContent = '‹';
+      btnPY.addEventListener('click', function (e) {
+        e.stopPropagation();
+        var p = parseMonthKey(state.selectedMonth);
+        state.selectedMonth = (p.year - 1) + '-' + String(p.month + 1).padStart(2, '0');
         saveState();
         render();
-        // clean up editor
-        if (input.parentNode) input.parentNode.removeChild(input);
-        span.style.display = '';
+        buildMonthDropdown();
       });
 
-      input.addEventListener('keydown', function (e) {
-        if (e.key === 'Enter') {
-          e.preventDefault();
-          this.blur();
-        }
-        if (e.key === 'Escape') {
-          // cancel edit
-          if (input.parentNode) input.parentNode.removeChild(input);
-          span.style.display = '';
-        }
-        // restrict to digits
-        if (!e.ctrlKey && !e.metaKey && !e.altKey && e.key.length === 1 && !/^[0-9]$/.test(e.key)) {
-          e.preventDefault();
-        }
+      var yearSpan = document.createElement('span');
+      yearSpan.className = 'month-picker__year-label';
+      yearSpan.textContent = year;
+
+      var btnNY = document.createElement('button');
+      btnNY.className = 'month-picker__year-btn';
+      btnNY.textContent = '›';
+      btnNY.addEventListener('click', function (e) {
+        e.stopPropagation();
+        var p = parseMonthKey(state.selectedMonth);
+        state.selectedMonth = (p.year + 1) + '-' + String(p.month + 1).padStart(2, '0');
+        saveState();
+        render();
+        buildMonthDropdown();
       });
+
+      yearRow.appendChild(btnPY);
+      yearRow.appendChild(yearSpan);
+      yearRow.appendChild(btnNY);
+      dom.monthDropdown.appendChild(yearRow);
+
+      // Grid de 12 meses
+      var grid = document.createElement('div');
+      grid.className = 'month-picker__grid';
+
+      MONTHS.forEach(function (name, i) {
+        var btn = document.createElement('button');
+        btn.className = 'month-picker__month-btn' + (i === selMon ? ' month-picker__month-btn--active' : '');
+        btn.textContent = name.substring(0, 3); // abrev 3 letras
+        btn.title = name;
+        btn.addEventListener('click', function (e) {
+          e.stopPropagation();
+          state.selectedMonth = year + '-' + String(i + 1).padStart(2, '0');
+          saveState();
+          render();
+          dom.monthDropdown.setAttribute('hidden', '');
+          dom.monthPickerBtn.setAttribute('aria-expanded', 'false');
+        });
+        grid.appendChild(btn);
+      });
+
+      dom.monthDropdown.appendChild(grid);
+    }
+
+    dom.monthPickerBtn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      var isOpen = !dom.monthDropdown.hasAttribute('hidden');
+      if (isOpen) {
+        dom.monthDropdown.setAttribute('hidden', '');
+        dom.monthPickerBtn.setAttribute('aria-expanded', 'false');
+      } else {
+        buildMonthDropdown();
+        dom.monthDropdown.removeAttribute('hidden');
+        dom.monthPickerBtn.setAttribute('aria-expanded', 'true');
+      }
     });
 
-    // Month navigation
-    dom.prevMonth.addEventListener('click', function () {
-      state.selectedMonth = addMonths(state.selectedMonth, -1);
-      saveState();
-      render();
-    });
-
-    dom.nextMonth.addEventListener('click', function () {
-      state.selectedMonth = addMonths(state.selectedMonth, 1);
-      saveState();
-      render();
+    // Cerrar dropdown al hacer clic fuera
+    document.addEventListener('click', function () {
+      if (!dom.monthDropdown.hasAttribute('hidden')) {
+        dom.monthDropdown.setAttribute('hidden', '');
+        dom.monthPickerBtn.setAttribute('aria-expanded', 'false');
+      }
     });
 
     // Add transactions

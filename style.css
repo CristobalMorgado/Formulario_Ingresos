@@ -60,10 +60,10 @@ body {
   background: linear-gradient(135deg, #111827 0%, #0f172a 45%, #1e293b 100%);
   min-height: 100vh;
   color: var(--text-primary);
-  padding: 20px 16px;
+  padding: 0;
   display: flex;
-  justify-content: center;
-  align-items: flex-start;
+  flex-direction: column;
+  align-items: stretch;
   line-height: 1.5;
   position: relative;
 }
@@ -86,43 +86,53 @@ body::before {
 }
 
 /* ----- APP CONTAINER ----- */
+/* El .app envuelve solo el contenido bajo el header */
 .app {
   width: 100%;
-  max-width: var(--max-width);
   display: flex;
   flex-direction: column;
   gap: 20px;
-  padding: 18px;
-  border-radius: 24px;
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  box-shadow: 0 16px 50px rgba(2, 6, 23, 0.22);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  flex: 1;
 }
 
 /* =============================
-   HEADER
+   HEADER — ancho completo de página
    ============================= */
 .header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 20px 24px;
-  background: linear-gradient(135deg, rgba(255,255,255,0.12), rgba(255,255,255,0.06));
-  border-radius: var(--card-radius);
-  box-shadow: var(--card-shadow);
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  position: relative;
-  overflow: hidden;
+  width: 100%;
+  padding: 18px clamp(16px, 4vw, 48px);
+  background: linear-gradient(135deg, rgba(255,255,255,0.10), rgba(255,255,255,0.05));
+  border-bottom: 1px solid rgba(255, 255, 255, 0.10);
+  box-shadow: 0 4px 24px rgba(0,0,0,0.35);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  flex-shrink: 0;
+  /* overflow: hidden eliminado — permitir que el dropdown del mes se muestre fuera del header */
 }
 
 .header::after {
   content: "";
   position: absolute;
   inset: 0;
-  background: linear-gradient(90deg, rgba(217,70,239,0.18), transparent 45%, rgba(6,182,212,0.18));
+  background: linear-gradient(90deg, rgba(217,70,239,0.14), transparent 45%, rgba(6,182,212,0.14));
   pointer-events: none;
+}
+
+/* Contenedor central del contenido bajo el header */
+.app__inner {
+  width: 100%;
+  max-width: var(--max-width);
+  margin: 0 auto;
+  padding: 20px 16px 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
 }
 
 .header__brand {
@@ -142,19 +152,25 @@ body::before {
 .header__icon {
   display: flex;
   align-items: center;
-  filter: drop-shadow(0 2px 6px rgba(16, 185, 129, 0.45));
-  animation: coinPulse 3s ease-in-out infinite;
-  transition: transform 0.3s ease;
+  filter: drop-shadow(0 4px 10px rgba(6, 182, 212, 0.4));
+  animation: walletFloat 3s ease-in-out infinite;
+  transition: transform 0.3s ease, filter 0.3s ease;
+}
+
+.header__icon-img {
+  width: 58px;
+  height: 58px;
+  object-fit: contain;
 }
 
 .header__icon:hover {
-  transform: scale(1.12) rotate(-8deg);
-  filter: drop-shadow(0 4px 12px rgba(16, 185, 129, 0.6));
+  transform: scale(1.15) rotate(-6deg);
+  filter: drop-shadow(0 6px 16px rgba(217, 70, 239, 0.6));
 }
 
-@keyframes coinPulse {
-  0%, 100% { filter: drop-shadow(0 2px 6px rgba(16, 185, 129, 0.35)); }
-  50%      { filter: drop-shadow(0 2px 14px rgba(52, 211, 153, 0.65)); }
+@keyframes walletFloat {
+  0%, 100% { transform: translateY(0); filter: drop-shadow(0 4px 10px rgba(6, 182, 212, 0.35)); }
+  50%      { transform: translateY(-3px); filter: drop-shadow(0 6px 18px rgba(217, 70, 239, 0.55)); }
 }
 
 .header__title {
@@ -189,52 +205,177 @@ body::before {
   border: 1px solid rgba(255,255,255,0.16);
 }
 
-/* Month navigation */
+/* Month navigation area */
 .month-nav {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 10px;
+  position: relative;
+  z-index: 1;
 }
 
 .month-nav__hint {
-  font-size: 0.75rem;
-  font-weight: 500;
-  color: rgba(255, 255, 255, 0.65);
-  margin-right: 2px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.55);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
-.month-nav__btn {
-  width: 34px;
-  height: 34px;
+/* ---- Month Picker ---- */
+.month-picker {
+  position: relative;
+}
+
+/* Botón principal — el que abre el dropdown */
+.month-picker__trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.10);
+  color: #ffffff;
+  font-family: var(--font-family);
+  font-size: 1.05rem;
+  font-weight: 700;
+  cursor: pointer;
+  letter-spacing: -0.01em;
+  transition: background 0.2s, border-color 0.2s, transform 0.15s;
+  backdrop-filter: blur(8px);
+}
+
+.month-picker__trigger:hover {
+  background: rgba(255, 255, 255, 0.16);
+  border-color: rgba(255, 255, 255, 0.30);
+}
+
+.month-picker__trigger:active {
+  transform: scale(0.97);
+}
+
+.month-picker__trigger[aria-expanded="true"] {
+  background: rgba(217, 70, 239, 0.18);
+  border-color: var(--fuchsia-400);
+}
+
+/* Chevron rota al abrir */
+.month-picker__chevron {
+  transition: transform 0.25s ease;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.month-picker__trigger[aria-expanded="true"] .month-picker__chevron {
+  transform: rotate(180deg);
+}
+
+/* Dropdown flotante */
+.month-picker__dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  min-width: 220px;
+  background: rgba(15, 23, 42, 0.96);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 14px;
+  padding: 12px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(20px);
+  z-index: 200;
+  animation: pickerFadeIn 0.18s ease both;
+}
+
+.month-picker__dropdown[hidden] {
+  display: none;
+}
+
+@keyframes pickerFadeIn {
+  from { opacity: 0; transform: translateY(-6px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* Fila del año dentro del dropdown */
+.month-picker__year-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.month-picker__year-label {
+  font-size: 1rem;
+  font-weight: 800;
+  color: #ffffff;
+  letter-spacing: -0.01em;
+}
+
+.month-picker__year-btn {
+  width: 30px;
+  height: 30px;
   border: none;
-  border-radius: 50%;
-  background: transparent;
-  color: rgba(255, 255, 255, 0.6);
-  font-size: 1.2rem;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 1.1rem;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: background var(--transition), color var(--transition);
+  transition: background 0.15s, color 0.15s;
 }
 
-.month-nav__btn:hover {
-  background: rgba(255, 255, 255, 0.1);
+.month-picker__year-btn:hover {
+  background: rgba(217, 70, 239, 0.25);
   color: #ffffff;
 }
 
-.month-nav__btn:focus-visible {
-  outline: 2px solid var(--fuchsia-500);
-  outline-offset: 2px;
+/* Grid 3 × 4 de meses */
+.month-picker__grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
 }
 
-.month-nav__label {
-  font-size: 0.9rem;
+.month-picker__month-btn {
+  padding: 8px 4px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.72);
+  font-family: var(--font-family);
+  font-size: 0.82rem;
   font-weight: 600;
-  color: #ffffff;
-  min-width: 100px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s, transform 0.1s;
   text-align: center;
 }
+
+.month-picker__month-btn:hover {
+  background: rgba(255, 255, 255, 0.10);
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.20);
+}
+
+.month-picker__month-btn:active {
+  transform: scale(0.94);
+}
+
+/* Mes actualmente seleccionado */
+.month-picker__month-btn--active {
+  background: linear-gradient(135deg, var(--fuchsia-500), var(--cyan-500));
+  color: #ffffff;
+  border-color: transparent;
+  font-weight: 800;
+}
+
+.month-picker__month-btn--active:hover {
+  background: linear-gradient(135deg, var(--fuchsia-400), var(--cyan-400));
+}
+
+
 
 /* =============================
    BALANCE
@@ -295,19 +436,24 @@ body::before {
   display: flex;
   align-items: center;
   gap: 4px;
+  min-width: 0;        /* permite que flex hijos se encojan */
+  overflow: hidden;
 }
 
 .balance__currency {
-  font-size: 2rem;
+  font-size: 1.6rem;
   font-weight: 800;
   color: var(--text-secondary);
+  flex-shrink: 0;       /* el $ nunca se encoge */
 }
 
 .balance__input {
   flex: 1;
+  min-width: 0;         /* clave: evita desbordamiento en flex */
+  width: 100%;
   border: none;
   background: transparent;
-  font-size: 2rem;
+  font-size: clamp(1.1rem, 3.5vw, 1.75rem);  /* se adapta al espacio disponible */
   font-weight: 700;
   font-family: var(--font-family);
   color: var(--text-primary);
@@ -315,6 +461,8 @@ body::before {
   outline: none;
   border-bottom: 2px solid transparent;
   transition: border-color var(--transition);
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .balance__input:focus {
@@ -327,16 +475,21 @@ body::before {
 
 .balance__amount {
   display: block;
-  font-size: 2rem;
+  font-size: clamp(1.1rem, 3.5vw, 1.75rem);  /* mismo tamaño adaptativo que el input */
   font-weight: 800;
   letter-spacing: -0.01em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: default;      /* NO editable — es solo lectura */
+  user-select: none;
 }
 
 .balance__card--highlight .balance__amount {
   color: #065f46;
 }
 
-/* Asegurar que el input del saldo inicial use la misma tipografía y color que el saldo disponible */
+/* Saldo inicial: misma tipografía que saldo disponible */
 .balance__card--highlight .balance__input,
 .balance__card--highlight .balance__input--light {
   color: #065f46;
@@ -344,26 +497,26 @@ body::before {
   font-family: var(--font-family);
 }
 
-/* Make the displayed amount hint editable (cursor) */
-.balance__amount { cursor: text; }
-
-/* Responsive rules (mobile-first enhancements) */
+/* =============================
+   RESPONSIVE
+   ============================= */
 @media (max-width: 768px) {
-  :root { --max-width: 720px; }
-
-  .app {
-    padding: 14px;
-    border-radius: 16px;
+  .app__inner {
+    padding: 14px 12px 24px;
+    gap: 16px;
   }
 
   .header {
     flex-direction: column;
     align-items: flex-start;
     gap: 12px;
-    padding: 14px;
+    padding: 14px clamp(12px, 4vw, 24px);
   }
 
-  .month-nav { align-self: stretch; display:flex; justify-content:space-between; }
+  .month-nav {
+    align-self: stretch;
+    justify-content: space-between;
+  }
 
   .balance {
     grid-template-columns: 1fr;
@@ -374,20 +527,14 @@ body::before {
   }
 
   .header__title { font-size: 1.1rem; }
-  .header__subtitle { font-size: 0.95rem; }
-
-  .balance__input, .balance__amount { font-size: 1.2rem; }
-
+  .header__subtitle { font-size: 0.92rem; }
   .tx-group__title { font-size: 0.95rem; }
 }
 
-@media (max-width: 420px) {
-  :root { --max-width: 420px; }
-  body { padding: 12px 10px; }
-  .app { padding: 12px; }
+@media (max-width: 480px) {
   .header__icon svg { width: 30px; height: 30px; }
   .month-nav__label { min-width: 80px; font-size: 0.82rem; }
-  .balance__input, .balance__amount { font-size: 1rem; }
+  .header__pill { display: none; } /* ocultar badge en móvil muy pequeño */
 }
 
 /* =============================
@@ -734,125 +881,179 @@ body::before {
   gap: 10px;
 }
 
-/* Single bar row */
-.chart-bar {
+/* =============================
+   DONUT CHART
+   ============================= */
+
+/* Wrapper principal — donut + leyenda */
+.donut__wrapper {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 32px;
+  flex-wrap: wrap;
+  justify-content: center;
+  padding: 8px 0;
 }
 
-.chart-bar__label {
-  width: 110px;
+/* SVG con sombra suave */
+.donut__svg {
+  flex-shrink: 0;
+  overflow: visible;
+  filter: drop-shadow(0 12px 32px rgba(0,0,0,0.45));
+}
+
+/* Capa de brillo detrás de cada segmento */
+.donut__glow {
+  transform-origin: center;
+  animation: donutFadeIn 0.5s ease both;
+}
+
+/* Segmentos principales */
+.donut__slice {
+  transform-origin: center;
+  animation: donutPop 0.65s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+@keyframes donutPop {
+  0%   { opacity: 0; transform: scale(0.7);  }
+  70%  { opacity: 1; transform: scale(1.04); }
+  100% { opacity: 1; transform: scale(1);    }
+}
+
+@keyframes donutFadeIn {
+  from { opacity: 0; }
+  to   { opacity: 0.28; }
+}
+
+/* Texto central — etiqueta */
+.donut__center-label {
+  fill: rgba(255, 255, 255, 0.55);
+  font-family: var(--font-family);
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+/* Texto central — monto total */
+.donut__center-amount {
+  fill: #ef4444;
+  font-family: var(--font-family);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+}
+
+/* ---- Leyenda ---- */
+.donut-legend {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  flex: 1;
+  min-width: 190px;
+  max-width: 300px;
+}
+
+.donut-legend__item {
+  display: grid;
+  grid-template-columns: 28px 1fr auto auto;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  transition: background 0.18s, transform 0.15s;
+  cursor: default;
+}
+
+.donut-legend__item:hover {
+  background: rgba(255, 255, 255, 0.08);
+  transform: translateX(3px);
+}
+
+/* Pill de color con glow inline */
+.donut-legend__pill {
+  display: block;
+  width: 28px;
+  height: 6px;
+  border-radius: 999px;
+  flex-shrink: 0;
+}
+
+.donut-legend__cat {
   font-size: 0.78rem;
   font-weight: 600;
-  color: rgba(255, 255, 255, 0.6);
-  text-align: right;
-  flex-shrink: 0;
+  color: rgba(255, 255, 255, 0.80);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.chart-bar__track {
-  flex: 1;
-  height: 26px;
-  background: rgba(255, 255, 255, 0.08);
-  border-radius: 6px;
-  overflow: hidden;
-}
-
-.chart-bar__fill {
-  height: 100%;
-  background: linear-gradient(90deg, var(--fuchsia-500), var(--cyan-500));
-  border-radius: 6px;
-  transition: width 0.6s cubic-bezier(0.22, 1, 0.36, 1);
-  min-width: 4px;
-}
-
-.chart-bar__fill--compare {
-  background: linear-gradient(90deg, var(--color-income), #34d399);
-}
-
-.chart-bar__amount {
-  width: 90px;
-  font-size: 0.82rem;
+.donut-legend__amount {
+  font-size: 0.78rem;
   font-weight: 700;
   color: #ffffff;
-  text-align: right;
-  flex-shrink: 0;
   white-space: nowrap;
+  text-align: right;
 }
 
-.chart-bar__amount--compare {
+.donut-legend__pct {
+  font-size: 0.70rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.38);
+  white-space: nowrap;
+  min-width: 38px;
+  text-align: right;
+}
+
+/* ---- Modo Comparación ---- */
+.donut__wrapper--compare {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 20px;
+}
+
+.donut__pair {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 40px;
+  flex-wrap: wrap;
+}
+
+.donut__empty-mini {
+  width: 210px;
+  height: 210px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.donut-legend__item--compare {
+  grid-template-columns: 28px 1fr auto auto;
+}
+
+.donut-legend__amount--compare {
   color: var(--color-income);
 }
 
-/* ---- Comparison mode: parallel bars ---- */
-.chart-bar--compare {
-  display: grid;
-  grid-template-columns: 110px 1fr;
-  grid-template-rows: auto auto;
-  gap: 4px 10px;
-  align-items: center;
-  padding: 10px 0;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-}
-
-.chart-bar--compare:last-child {
-  border-bottom: none;
-}
-
-.chart-bar--compare .chart-bar__label {
-  grid-row: 1 / 3;
-  grid-column: 1;
-  align-self: center;
-  width: auto;
-}
-
-/* Each bar row in compare mode */
-.chart-bar__row {
-  grid-column: 2;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  animation: barSlideIn 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
-}
-
-.chart-bar__row:nth-child(3) {
-  animation-delay: 0.08s;
-}
-
-.chart-bar__row .chart-bar__track {
-  flex: 1;
-  height: 16px;
-  border-radius: 8px;
-}
-
-.chart-bar__row .chart-bar__fill {
-  border-radius: 8px;
-}
-
-.chart-bar__row .chart-bar__amount {
-  width: 90px;
-  font-size: 0.75rem;
-}
-
-/* Difference indicator */
-.chart-bar__diff {
-  grid-column: 2;
-  display: none;
-}
-
-@keyframes barSlideIn {
-  from {
-    opacity: 0;
-    transform: translateX(-12px);
+/* Responsive */
+@media (max-width: 600px) {
+  .donut__wrapper {
+    flex-direction: column;
+    align-items: center;
   }
-  to {
-    opacity: 1;
-    transform: translateX(0);
+  .donut-legend {
+    min-width: unset;
+    width: 100%;
+    max-width: 100%;
+  }
+  .donut__pair {
+    gap: 20px;
   }
 }
+
+
 
 /* =============================
    BUTTONS

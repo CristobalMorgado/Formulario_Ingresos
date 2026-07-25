@@ -17,37 +17,7 @@
     <header class="header">
       <div class="header__brand">
         <span class="header__icon" aria-hidden="true">
-          <svg width="36" height="36" viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <circle cx="22" cy="23" r="19" fill="rgba(0,0,0,0.18)"/>
-            <defs>
-              <linearGradient id="coinRing" x1="0" y1="0" x2="44" y2="44" gradientUnits="userSpaceOnUse">
-                <stop offset="0%" stop-color="#34d399"/>
-                <stop offset="50%" stop-color="#10b981"/>
-                <stop offset="100%" stop-color="#059669"/>
-              </linearGradient>
-              <linearGradient id="coinInner" x1="10" y1="8" x2="34" y2="36" gradientUnits="userSpaceOnUse">
-                <stop offset="0%" stop-color="#6ee7b7"/>
-                <stop offset="100%" stop-color="#059669"/>
-              </linearGradient>
-              <linearGradient id="coinShine" x1="12" y1="6" x2="22" y2="22" gradientUnits="userSpaceOnUse">
-                <stop offset="0%" stop-color="rgba(255,255,255,0.45)"/>
-                <stop offset="100%" stop-color="rgba(255,255,255,0)"/>
-              </linearGradient>
-            </defs>
-            <circle cx="22" cy="21" r="19" fill="url(#coinRing)" stroke="#047857" stroke-width="0.5"/>
-            <circle cx="22" cy="21" r="15.5" fill="url(#coinInner)" stroke="#047857" stroke-width="0.7"/>
-            <circle cx="22" cy="21" r="14" fill="none" stroke="rgba(255,255,255,0.25)" stroke-width="0.5" stroke-dasharray="2.5 1.8"/>
-            <ellipse cx="18" cy="14" rx="10" ry="7" fill="url(#coinShine)"/>
-            <g transform="translate(22,21)">
-              <path d="M2.5,-7.5 C2.5,-9.5 0.5,-10.5 -1.5,-10.5 C-3.8,-10.5 -5.2,-9 -5.2,-7 C-5.2,-4.5 -3,-3.5 -0.5,-2.5 C2.5,-1.3 5,-0.2 5,3 C5,6 2.8,8 -0.5,8 C-3.5,8 -5.8,6.2 -5.8,3.5"
-                    fill="none" stroke="#ffffff" stroke-width="2.2" stroke-linecap="round"/>
-              <line x1="0" y1="-13" x2="0" y2="10.5" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round"/>
-            </g>
-            <circle cx="10.5" cy="21" r="1" fill="rgba(255,255,255,0.5)"/>
-            <circle cx="33.5" cy="21" r="1" fill="rgba(255,255,255,0.5)"/>
-            <circle cx="22" cy="8.5" r="0.8" fill="rgba(255,255,255,0.35)"/>
-            <circle cx="22" cy="33.5" r="0.8" fill="rgba(255,255,255,0.35)"/>
-          </svg>
+          <img src="wallet-icon.png" alt="Billetera" class="header__icon-img">
         </span>
         <div class="header__text">
           <h1 class="header__title">Billetera.JS <span class="header__subtitle">| Control Financiero</span></h1>
@@ -56,107 +26,113 @@
       </div>
       <div class="month-nav">
         <span class="month-nav__hint">Elige el mes</span>
-        <button class="month-nav__btn" id="prevMonth" aria-label="Mes anterior">&lsaquo;</button>
-        <span class="month-nav__label" id="monthLabel">Junio 2026</span>
-        <button class="month-nav__btn" id="nextMonth" aria-label="Mes siguiente">&rsaquo;</button>
+        <div class="month-picker">
+          <button class="month-picker__trigger" id="monthPickerBtn" aria-haspopup="true" aria-expanded="false">
+            <span id="monthLabel">Junio 2026</span>
+            <svg class="month-picker__chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+          <div class="month-picker__dropdown" id="monthDropdown" hidden></div>
+        </div>
       </div>
     </header>
 
-    <!-- BALANCE -->
-    <section class="balance" aria-label="Resumen de saldo">
-      <div class="balance__card balance__card--highlight">
-        <label class="balance__label" for="initialBalance">Saldo Inicial</label>
-        <div class="balance__input-wrap">
-          <span class="balance__currency">$</span>
-          <input
-            type="text"
-            id="initialBalance"
-            class="balance__input balance__input--light"
-            inputmode="numeric"
-            autocomplete="off"
-            value="0"
-          >
-        </div>
-      </div>
-      <div class="balance__card balance__card--highlight">
-        <span class="balance__label">Saldo Disponible</span>
-        <span class="balance__amount" id="availableBalance">$0</span>
-      </div>
-    </section>
-
-    <!-- TRANSACTIONS -->
-    <div class="transactions">
-
-      <!-- INCOME -->
-      <section class="tx-group" aria-label="Ingresos">
-        <div class="tx-group__header">
-          <h2 class="tx-group__title">
-            <span class="tx-group__icon" aria-hidden="true">↗</span> Ingresos
-          </h2>
-          <div class="tx-group__actions">
-            <button class="btn btn--sm btn--ghost" id="manageIncomeCats" title="Administrar categorías de ingresos" aria-label="Administrar categorías">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-            </button>
-            <button class="btn btn--green btn--sm" id="addIncome">+ Agregar</button>
+    <div class="app__inner">
+      <!-- BALANCE -->
+      <section class="balance" aria-label="Resumen de saldo">
+        <div class="balance__card balance__card--highlight">
+          <label class="balance__label" for="initialBalance">Saldo Inicial</label>
+          <div class="balance__input-wrap">
+            <span class="balance__currency">$</span>
+            <input
+              type="text"
+              id="initialBalance"
+              class="balance__input balance__input--light"
+              inputmode="numeric"
+              autocomplete="off"
+              value="0"
+            >
           </div>
         </div>
-        <div class="tx-group__list" id="incomeList">
-          <p class="tx-group__empty">No hay ingresos registrados este mes</p>
-        </div>
-        <div class="tx-group__total">
-          <span>Total Ingresos</span>
-          <span class="tx-group__total-amount tx-group__total-amount--positive" id="totalIncome">$0</span>
+        <div class="balance__card balance__card--highlight">
+          <span class="balance__label">Saldo Disponible</span>
+          <span class="balance__amount" id="availableBalance" readonly tabindex="-1">$0</span>
         </div>
       </section>
 
-      <!-- EXPENSES -->
-      <section class="tx-group" aria-label="Egresos">
-        <div class="tx-group__header">
-          <h2 class="tx-group__title">
-            <span class="tx-group__icon" aria-hidden="true">↘</span> Egresos
-          </h2>
-          <div class="tx-group__actions">
-            <button class="btn btn--sm btn--ghost" id="manageExpenseCats" title="Administrar categorías de egresos" aria-label="Administrar categorías">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-            </button>
-            <button class="btn btn--danger btn--sm" id="addExpense">+ Agregar</button>
+      <!-- TRANSACTIONS -->
+      <div class="transactions">
+
+        <!-- INCOME -->
+        <section class="tx-group" aria-label="Ingresos">
+          <div class="tx-group__header">
+            <h2 class="tx-group__title">
+              <span class="tx-group__icon" aria-hidden="true">↗</span> Ingresos
+            </h2>
+            <div class="tx-group__actions">
+              <button class="btn btn--sm btn--ghost" id="manageIncomeCats" title="Administrar categorías de ingresos" aria-label="Administrar categorías">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+              </button>
+              <button class="btn btn--green btn--sm" id="addIncome">+ Agregar</button>
+            </div>
           </div>
+          <div class="tx-group__list" id="incomeList">
+            <p class="tx-group__empty">No hay ingresos registrados este mes</p>
+          </div>
+          <div class="tx-group__total">
+            <span>Total Ingresos</span>
+            <span class="tx-group__total-amount tx-group__total-amount--positive" id="totalIncome">$0</span>
+          </div>
+        </section>
+
+        <!-- EXPENSES -->
+        <section class="tx-group" aria-label="Gastos">
+          <div class="tx-group__header">
+            <h2 class="tx-group__title">
+              <span class="tx-group__icon" aria-hidden="true">↘</span> Gastos
+            </h2>
+            <div class="tx-group__actions">
+              <button class="btn btn--sm btn--ghost" id="manageExpenseCats" title="Administrar categorías de gastos" aria-label="Administrar categorías">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+              </button>
+              <button class="btn btn--danger btn--sm" id="addExpense">+ Agregar</button>
+            </div>
+          </div>
+          <div class="tx-group__list" id="expenseList">
+            <p class="tx-group__empty">No hay gastos registrados este mes</p>
+          </div>
+          <div class="tx-group__total">
+            <span>Total Gastos</span>
+            <span class="tx-group__total-amount tx-group__total-amount--negative" id="totalExpenses">$0</span>
+          </div>
+        </section>
+
+      </div>
+
+      <!-- CHART -->
+      <section class="chart" aria-label="Gráfico de gastos del mes">
+        <div class="chart__header">
+          <h2 class="chart__title">
+            <span class="chart__icon" aria-hidden="true">▣</span> Gráfico de Gastos del Mes
+          </h2>
+          <button class="btn btn--sm chart__compare-btn" id="toggleCompare">↔ Comparar Meses</button>
         </div>
-        <div class="tx-group__list" id="expenseList">
-          <p class="tx-group__empty">No hay egresos registrados este mes</p>
+        <div class="chart__compare-panel" id="comparePanel" hidden>
+          <span class="chart__compare-hint">Elija el mes a comparar</span>
+          <button class="month-nav__btn" id="comparePrev" aria-label="Mes anterior">&lsaquo;</button>
+          <span class="month-nav__label" id="compareMonthLabel">Mayo 2026</span>
+          <button class="month-nav__btn" id="compareNext" aria-label="Mes siguiente">&rsaquo;</button>
         </div>
-        <div class="tx-group__total">
-          <span>Total Egresos</span>
-          <span class="tx-group__total-amount tx-group__total-amount--negative" id="totalExpenses">$0</span>
+        <div class="chart__legend" id="chartLegend" hidden></div>
+        <div class="chart__bars" id="chartBars">
+          <p class="tx-group__empty">No hay gastos para mostrar</p>
         </div>
       </section>
 
+      <!-- FOOTER -->
+      <footer class="footer">
+        <p class="footer__text">Los datos se guardan automáticamente en tu navegador</p>
+      </footer>
     </div>
-
-    <!-- CHART -->
-    <section class="chart" aria-label="Gráfico de gastos del mes">
-      <div class="chart__header">
-        <h2 class="chart__title">
-          <span class="chart__icon" aria-hidden="true">▣</span> Gráfico de Gastos del Mes
-        </h2>
-        <button class="btn btn--sm chart__compare-btn" id="toggleCompare">↔ Comparar Meses</button>
-      </div>
-      <div class="chart__compare-panel" id="comparePanel" hidden>
-        <span class="chart__compare-hint">Elija el mes a comparar</span>
-        <button class="month-nav__btn" id="comparePrev" aria-label="Mes anterior">&lsaquo;</button>
-        <span class="month-nav__label" id="compareMonthLabel">Mayo 2026</span>
-        <button class="month-nav__btn" id="compareNext" aria-label="Mes siguiente">&rsaquo;</button>
-      </div>
-      <div class="chart__legend" id="chartLegend" hidden></div>
-      <div class="chart__bars" id="chartBars">
-        <p class="tx-group__empty">No hay egresos para mostrar</p>
-      </div>
-    </section>
-
-    <!-- FOOTER -->
-    <footer class="footer">
-      <p class="footer__text">Los datos se guardan automáticamente en tu navegador</p>
-    </footer>
 
   </div>
 
