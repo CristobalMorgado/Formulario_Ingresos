@@ -1,119 +1,76 @@
-# Billetera.JS — Control Financiero Personal
+# Billetera.JS — Control Financiero Personal (Full-Stack)
 
-Aplicación web de control de finanzas personales construida con **HTML5**, **CSS3** y **Vanilla JavaScript**. Permite registrar ingresos y egresos por mes, definir saldos iniciales independientes y comparar visualmente los gastos entre meses mediante gráficos de barras horizontales.
-
-> Los datos se guardan automáticamente en el navegador (localStorage).
+Aplicación web de control de finanzas personales construida con **HTML5**, **CSS3**, **Vanilla JavaScript** en el frontend, y **Node.js + Express + MongoDB Atlas** en el backend. 
+Permite registrar ingresos y egresos por mes, definir saldos iniciales independientes y mantener todos los datos sincronizados en tiempo real en una base de datos en la nube.
 
 ---
 
-##  Características
+## 🌟 Características
 
-- **Registro de transacciones** — Ingresos y egresos organizados por categorías personalizables.
+- **Arquitectura Full-Stack** — Frontend desacoplado de un backend RESTful en Node.js, conectado a MongoDB.
+- **Registro de transacciones unificado** — Ingresos y egresos se manejan bajo el mismo modelo en la base de datos para consultas eficientes.
 - **Navegación por meses** — Cambia de mes libremente y cada mes mantiene sus propios datos.
-- **Saldo inicial por mes** — Cada mes tiene su saldo inicial independiente (no se comparte entre meses).
-- **Saldo disponible** — Cálculo automático: `Saldo Inicial + Ingresos − Egresos`.
+- **Saldo inicial por mes** — Cada mes tiene su saldo inicial independiente guardado en la base de datos.
 - **Gráfico de gastos** — Barras horizontales con gradientes que muestran la distribución de egresos.
 - **Comparación de meses** — Vista paralela con dos barras delgadas por categoría para comparar visualmente dos meses distintos.
-- **Categorías personalizables** — Agrega, edita o elimina categorías tanto de ingresos como de egresos.
-- **Persistencia local** — Todos los datos se guardan en `localStorage` del navegador.
+- **Categorías personalizables** — Agrega, edita o elimina categorías. Los cambios se reflejan automáticamente en las transacciones asociadas.
+- **Indicadores Económicos** — Integración con la API de `mindicador.cl` para mostrar valor diario del Dólar, UF, Euro, etc.
 - **Diseño premium** — Glassmorphism, gradientes animados, micro-animaciones y tipografía Inter.
 
 ---
 
-##  Tecnologías
+## 🚀 Tecnologías
 
 | Tecnología | Uso |
 |------------|-----|
-| **HTML5** | Estructura semántica con atributos ARIA para accesibilidad |
-| **CSS3** | Variables CSS, Grid, Flexbox, gradientes, animaciones con keyframes |
-| **Vanilla JS** | Lógica de la app (sin frameworks ni dependencias externas) |
-| **Google Fonts** | Tipografía [Inter](https://fonts.google.com/specimen/Inter) |
-| **localStorage** | Persistencia de datos en el navegador |
+| **HTML5 / CSS3** | Estructura semántica, Variables CSS, Grid, Flexbox, gradientes, animaciones. |
+| **Vanilla JS** | Lógica del cliente interactuando con el backend mediante `fetch`. |
+| **Node.js + Express** | Servidor backend que expone una API REST y sirve los archivos estáticos del frontend. |
+| **MongoDB Atlas** | Base de datos NoSQL en la nube para almacenamiento persistente. |
+| **Mongoose** | ODM para modelar los datos (Transacciones, Categorías, Saldos). |
 
 ---
 
-##  Estructura del Proyecto
+## 📁 Estructura del Proyecto
 
 ```
-Proyecto_Formulario/
-├── index.html    → Estructura HTML de la aplicación
-├── style.css     → Estilos, diseño responsivo y animaciones
-├── app.js        → Lógica completa (estado, render, eventos, storage)
-└── README.md     → Este archivo
-```
-
----
-
-##  Registro de Cambios
-
-###  Icono SVG de Moneda de Dólar
-
-Se reemplazó el icono genérico (círculo + texto `$`) por un **SVG artesanal de moneda** con múltiples capas visuales:
-
-- Sombra exterior para efecto de profundidad.
-- Anillo exterior con gradiente de 3 tonos verdes.
-- Círculo interior biselado con gradiente diferenciado.
-- Anillo decorativo punteado (simula borde dentado de moneda real).
-- Brillo superior con elipse translúcida (efecto 3D).
-- Signo `$` trazado con `<path>` SVG (curva S + línea vertical), no texto genérico.
-- Puntos cardinales decorativos.
-- Animación CSS `coinPulse` con brillo pulsante y efecto hover con rotación.
-
----
-
-###  Fix: Transacciones se Guardaban Siempre en el Mes Actual
-
-**Problema:** Al navegar a otro mes (ej. Julio) y agregar una transacción, esta se guardaba con la fecha de hoy (`getToday()`), por lo que siempre caía en el mes actual (Junio) sin importar el mes seleccionado.
-
-**Solución:** La fecha de la transacción ahora se construye con `state.selectedMonth + '-15'`, asociando correctamente cada registro al mes que el usuario tiene seleccionado en la interfaz.
-
-```diff
-- date: getToday()
-+ date: state.selectedMonth + '-15'
+EVA 2/
+├── backend-ingresos/       → Servidor Node.js
+│   ├── models/             → Esquemas de Mongoose (Transaccion, Categoria, SaldoInicial)
+│   ├── index.js            → Archivo principal del servidor y endpoints de la API
+│   ├── package.json        → Dependencias del backend
+│   └── .env                → Variables de entorno (URI de MongoDB)
+│
+└── Proyecto_Formulario/    → Interfaz de usuario (Frontend)
+    ├── index.html          → Estructura HTML
+    ├── style.css           → Estilos y animaciones
+    ├── app.js              → Lógica de cliente y llamadas a la API
+    └── README.md           → Este archivo
 ```
 
 ---
 
-###  Fix: Saldo Inicial Independiente por Mes
+## ⚙️ Uso Local
 
-**Problema:** `initialBalance` era un número único global compartido por todos los meses. Al cambiar de mes, el saldo inicial se mantenía igual.
-
-**Solución:** Se reemplazó `initialBalance` (número) por `initialBalances` (objeto/diccionario), donde cada clave es un mes en formato `YYYY-MM`:
-
-```diff
-- state.initialBalance = 0;
-+ state.initialBalances = {};
-```
-
-Incluye **migración automática**: si existían datos con el formato antiguo (número), se convierten al mes actual sin perder información.
+1. Abre una terminal en la carpeta `backend-ingresos`.
+2. Instala las dependencias: `npm install`
+3. Inicia el servidor: `node index.js`
+4. Abre tu navegador e ingresa a `http://localhost:3000`. (El servidor de Node.js entregará automáticamente la aplicación web).
 
 ---
 
-###  Comparación de Meses con Barras Paralelas
+## ☁️ Roadmap: Despliegue y Autenticación
 
-Se rediseñó completamente la sección de comparación de gráficos:
+Para que esta aplicación pueda ser utilizada desde cualquier teléfono móvil en cualquier parte del mundo:
 
-- **Label indicativo** — Se agregó `"Elija el mes a comparar"` en el panel de selección.
-- **Panel mejorado** — Fondo con gradiente fuchsia→cyan y borde decorativo.
-- **Barras paralelas** — Cada categoría muestra dos barras delgadas horizontales (16px) una debajo de la otra, con su monto al lado, usando CSS Grid.
-- **Leyenda mejorada** — Swatches alargados con border-radius, fondo sutil.
-- **Animación de entrada** — Las barras aparecen con `barSlideIn` (slide + fade) con delay escalonado.
-- **Separadores** — Línea sutil entre categorías en modo comparación.
-
----
-
-##  Uso
-
-1. Abre `index.html` en cualquier navegador moderno.
-2. Define el **saldo inicial** del mes.
-3. Agrega **ingresos** y **egresos** con sus categorías.
-4. Navega entre meses con las flechas `‹` `›`.
-5. Presiona **🔍 Comparar Meses** para ver gráficos paralelos entre dos meses.
+1. **Alojamiento (Hosting):** Se debe desplegar el servidor backend (Node.js) en plataformas como **Render**, **Railway** o **Heroku**.
+2. **Autenticación (Futuro):** Actualmente la base de datos es única. Para soportar múltiples usuarios, se deberá:
+   - Crear un modelo de `Usuario` en MongoDB.
+   - Modificar las transacciones para que incluyan el `usuario_id`.
+   - Implementar JSON Web Tokens (JWT) para que cada usuario inicie sesión y solo vea sus propios datos.
 
 ---
 
-##  Autor
+## 👨‍💻 Autor
 
 **Cristóbal Morgado**
-
----

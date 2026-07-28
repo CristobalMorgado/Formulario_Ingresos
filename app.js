@@ -18,6 +18,10 @@
   // Regex para validación de texto: letras, números, espacios y caracteres especiales del español
   var VALID_TEXT_REGEX = /^[a-zA-Z0-9\s.,\-ñÑáéíóúÁÉÍÓÚ]+$/;
 
+  // URL base del backend Node.js
+  // Vacío = rutas relativas → funciona cuando Node.js sirve el frontend
+  var API_BASE = '';
+
   // ============================================================
   // STATE
   // ============================================================
@@ -151,69 +155,74 @@
   }
 
   // ============================================================
-  // STORAGE
+  // STORAGE — solo preferencias de UI (no datos)
   // ============================================================
 
-  function loadState() {
+  function loadUIPrefs() {
     var raw;
-    try {
-      raw = localStorage.getItem(STORAGE_KEY);
-    } catch (e) {
-      raw = null;
-    }
+    try { raw = localStorage.getItem(STORAGE_KEY); } catch (e) { raw = null; }
     if (raw) {
       try {
         var data = JSON.parse(raw);
-        // Migración: si initialBalance es un número (formato antiguo), convertir a objeto por mes
-        if (typeof data.initialBalance === 'number') {
-          var currentMonth = getCurrentMonthKey();
-          state.initialBalances = {};
-          state.initialBalances[currentMonth] = data.initialBalance;
-        } else if (data.initialBalances && typeof data.initialBalances === 'object' && !Array.isArray(data.initialBalances)) {
-          state.initialBalances = data.initialBalances;
-        } else {
-          state.initialBalances = {};
-        }
-        state.incomeCategories = Array.isArray(data.incomeCategories) ? data.incomeCategories : DEFAULT_INCOME_CATS.slice();
-        state.expenseCategories = Array.isArray(data.expenseCategories) ? data.expenseCategories : DEFAULT_EXPENSE_CATS.slice();
-        state.transactions = Array.isArray(data.transactions) ? data.transactions : [];
         state.selectedMonth = typeof data.selectedMonth === 'string' && data.selectedMonth.match(/^\d{4}-\d{2}$/) ? data.selectedMonth : getCurrentMonthKey();
-        state.compareActive = data.compareActive === true;
-        state.compareMonth = typeof data.compareMonth === 'string' && data.compareMonth.match(/^\d{4}-\d{2}$/) ? data.compareMonth : addMonths(state.selectedMonth, -1);
+        state.compareActive  = data.compareActive === true;
+        state.compareMonth   = typeof data.compareMonth === 'string' && data.compareMonth.match(/^\d{4}-\d{2}$/) ? data.compareMonth : addMonths(state.selectedMonth, -1);
       } catch (e) {
-        setDefaults();
+        setDefaultPrefs();
       }
     } else {
-      setDefaults();
+      setDefaultPrefs();
     }
   }
 
-  function setDefaults() {
+  function setDefaultPrefs() {
     var current = getCurrentMonthKey();
-    state.initialBalances = {};
-    state.incomeCategories = DEFAULT_INCOME_CATS.slice();
-    state.expenseCategories = DEFAULT_EXPENSE_CATS.slice();
-    state.transactions = [];
-    state.selectedMonth = current;
-    state.compareActive = false;
-    state.compareMonth = addMonths(current, -1);
+    state.selectedMonth  = current;
+    state.compareActive  = false;
+    state.compareMonth   = addMonths(current, -1);
+    // Datos vacíos hasta que llegue la API
+    state.initialBalances   = {};
+    state.incomeCategories  = [];
+    state.expenseCategories = [];
+    state.transactions      = [];
   }
 
+  // Guarda SOLO preferencias de UI (mes, comparación)
   function saveState() {
-    var data = {
-      initialBalances: state.initialBalances,
-      incomeCategories: state.incomeCategories,
-      expenseCategories: state.expenseCategories,
-      transactions: state.transactions,
-      selectedMonth: state.selectedMonth,
-      compareActive: state.compareActive,
-      compareMonth: state.compareMonth
-    };
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-    } catch (e) {
-      showToast('Error al guardar los datos');
-    }
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({
+        selectedMonth: state.selectedMonth,
+        compareActive: state.compareActive,
+        compareMonth:  state.compareMonth
+      }));
+    } catch (e) { /* ignorar */ }
+  }
+
+  // ============================================================
+  // LOADING SPINNER
+  // ============================================================
+
+  function showLoading() {
+    var el = document.getElementById('appLoadingOverlay');
+    if (el) el.removeAttribute('hidden');
+  }
+
+  function hideLoading() {
+    var el = document.getElementById('appLoadingOverlay');
+    if (el) el.setAttribute('hidden', '');
+  }
+
+  function showApiError(msg) {
+    var el = document.getElementById('appLoadingOverlay');
+    if (!el) return;
+    el.innerHTML =
+      '<div class="loading-overlay__box">' +
+        '<span style="font-size:2.5rem">⚠️</span>' +
+        '<p style="color:#f87171;font-weight:600;margin-top:12px">' + (msg || 'Error al conectar con el servidor') + '</p>' +
+        '<p style="color:var(--text-muted);font-size:0.85rem;margin-top:6px">Asegúrate de que el backend esté corriendo en http://localhost:3000</p>' +
+        '<button class="btn btn--ghost" style="margin-top:18px" onclick="location.reload()">Reintentar</button>' +
+      '</div>';
+    el.removeAttribute('hidden');
   }
 
   // ============================================================
@@ -615,6 +624,7 @@
 
   function addTransaction(type) {
     var title = type === 'income' ? 'Agregar Ingreso' : 'Agregar Gasto';
+    // Categorías ahora son objetos {_id, nombre}
     var categories = type === 'income' ? state.incomeCategories : state.expenseCategories;
     var catOptions = '';
 
@@ -622,7 +632,7 @@
       catOptions = '<option value="">— Sin categorías disponibles —</option>';
     } else {
       categories.forEach(function (cat) {
-        catOptions += '<option value="' + sanitizeString(cat) + '">' + sanitizeString(cat) + '</option>';
+        catOptions += '<option value="' + sanitizeString(cat.nombre) + '">' + sanitizeString(cat.nombre) + '</option>';
       });
     }
 
@@ -647,71 +657,90 @@
     openModal(title, bodyHtml);
 
     document.getElementById('modalSave').addEventListener('click', function () {
-      var catEl = document.getElementById('txCategory');
-      var amtEl = document.getElementById('txAmount');
+      var catEl  = document.getElementById('txCategory');
+      var amtEl  = document.getElementById('txAmount');
       var descEl = document.getElementById('txDesc');
 
-      var category = catEl.value;
-      var rawAmount = amtEl.value.replace(/\./g, '').replace(/,/g, '');
-      var amount = validateAmount(rawAmount);
+      var category   = catEl.value;
+      var rawAmount  = amtEl.value.replace(/\./g, '').replace(/,/g, '');
+      var amount     = validateAmount(rawAmount);
       var description = descEl.value.trim();
 
-      if (!category) {
-        showToast('Selecciona una categoría');
-        return;
-      }
-      if (amount === null || amount <= 0) {
-        showToast('Ingresa un monto válido mayor a 0');
-        return;
-      }
-      // Validación Regex: solo letras, números, espacios y caracteres permitidos
+      if (!category) { showToast('Selecciona una categoría'); return; }
+      if (amount === null || amount <= 0) { showToast('Ingresa un monto válido mayor a 0'); return; }
       if (description && !VALID_TEXT_REGEX.test(description)) {
         showToast('La descripción contiene caracteres no permitidos');
         return;
       }
 
-      var transaction = {
-        id: generateId(),
-        type: type,
-        category: category,
-        amount: amount,
-        description: description,
-        date: state.selectedMonth + '-15'
+      // Deshabilitar el botón para evitar doble clic
+      var saveBtn = document.getElementById('modalSave');
+      saveBtn.disabled = true;
+      saveBtn.textContent = 'Guardando...';
+
+      var payload = {
+        tipo:        type === 'income' ? 'ingreso' : 'gasto',
+        categoria:   category,
+        monto:       amount,
+        descripcion: description,
+        mes:         state.selectedMonth,
+        fecha:       state.selectedMonth + '-15'
       };
 
-      state.transactions.push(transaction);
-      saveState();
-      render();
-      closeModal();
-      showToast((type === 'income' ? 'Ingreso' : 'Gasto') + ' registrado correctamente');
+      fetch(API_BASE + '/api/transacciones', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      })
+        .then(function (res) {
+          if (!res.ok) throw new Error('Error ' + res.status);
+          return res.json();
+        })
+        .then(function (data) {
+          var tx = data.transaccion;
+          // Agregar al state local con el _id de MongoDB
+          state.transactions.push({
+            id:          tx._id,
+            type:        tx.tipo === 'ingreso' ? 'income' : 'expense',
+            category:    tx.categoria,
+            amount:      tx.monto,
+            description: tx.descripcion || '',
+            date:        tx.mes + '-15'
+          });
+          render();
+          closeModal();
+          showToast((type === 'income' ? 'Ingreso' : 'Gasto') + ' registrado correctamente');
+        })
+        .catch(function (err) {
+          console.error('[API] Error al guardar transacción:', err.message);
+          showToast('❌ Error al guardar. Verifica que el backend esté activo.');
+          if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = 'Guardar'; }
+        });
     });
 
     document.getElementById('modalCancel').addEventListener('click', closeModal);
 
-    // Allow Enter key to submit
     var amtField = document.getElementById('txAmount');
     amtField.addEventListener('keydown', function (e) {
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        document.getElementById('modalSave').click();
-      }
+      if (e.key === 'Enter') { e.preventDefault(); document.getElementById('modalSave').click(); }
     });
   }
 
   function deleteTransaction(id) {
-    var found = false;
-    for (var i = 0; i < state.transactions.length; i++) {
-      if (state.transactions[i].id === id) {
-        state.transactions.splice(i, 1);
-        found = true;
-        break;
-      }
-    }
-    if (found) {
-      saveState();
-      render();
-      showToast('Registro eliminado');
-    }
+    fetch(API_BASE + '/api/transacciones/' + id, { method: 'DELETE' })
+      .then(function (res) {
+        if (!res.ok) throw new Error('Error ' + res.status);
+        return res.json();
+      })
+      .then(function () {
+        state.transactions = state.transactions.filter(function (tx) { return tx.id !== id; });
+        render();
+        showToast('Registro eliminado');
+      })
+      .catch(function (err) {
+        console.error('[API] Error al eliminar transacción:', err.message);
+        showToast('❌ Error al eliminar. Verifica que el backend esté activo.');
+      });
   }
 
   function clearAllMonthExpenses() {
@@ -725,20 +754,31 @@
     }
 
     var monthName = monthKeyToLabel(state.selectedMonth);
-    if (confirm('¿Estás seguro de que deseas eliminar TODOS los gastos de ' + monthName + '?')) {
-      state.transactions = state.transactions.filter(function (tx) {
-        return !(tx.type === 'expense' && isSameMonth(tx, state.selectedMonth));
+    if (!confirm('¿Estás seguro de que deseas eliminar TODOS los gastos de ' + monthName + '?')) return;
+
+    fetch(API_BASE + '/api/transacciones/mes/' + state.selectedMonth + '/tipo/gasto', { method: 'DELETE' })
+      .then(function (res) {
+        if (!res.ok) throw new Error('Error ' + res.status);
+        return res.json();
+      })
+      .then(function () {
+        state.transactions = state.transactions.filter(function (tx) {
+          return !(tx.type === 'expense' && isSameMonth(tx, state.selectedMonth));
+        });
+        render();
+        showToast('Todos los gastos de ' + monthName + ' fueron eliminados');
+      })
+      .catch(function (err) {
+        console.error('[API] Error al eliminar gastos:', err.message);
+        showToast('❌ Error al eliminar. Verifica que el backend esté activo.');
       });
-      saveState();
-      render();
-      showToast('Todos los gastos de ' + monthName + ' fueron eliminados');
-    }
   }
 
   // ============================================================
   // CATEGORIES
   // ============================================================
 
+  // Categorías ahora son objetos {_id, nombre, tipo}
   function manageCategories(type) {
     var title = type === 'income' ? 'Administrar Categorías de Ingresos' : 'Administrar Categorías de Gastos';
     var categories = type === 'income' ? state.incomeCategories : state.expenseCategories;
@@ -749,8 +789,8 @@
     } else {
       categories.forEach(function (cat) {
         listHtml +=
-          '<div class="cat-item" data-cat="' + sanitizeString(cat) + '">' +
-            '<span class="cat-item__name">' + sanitizeString(cat) + '</span>' +
+          '<div class="cat-item" data-cat-id="' + cat._id + '" data-cat="' + sanitizeString(cat.nombre) + '">' +
+            '<span class="cat-item__name">' + sanitizeString(cat.nombre) + '</span>' +
             '<div class="cat-item__actions">' +
               '<button class="cat-item__btn" data-action="editCat" title="Editar">✏️</button>' +
               '<button class="cat-item__btn cat-item__btn--delete" data-action="deleteCat" title="Eliminar">🗑️</button>' +
@@ -771,101 +811,93 @@
   }
 
   function setupCategoryEvents(type) {
-    var addBtn = document.getElementById('addCatBtn');
-    var input = document.getElementById('newCatName');
+    var addBtn    = document.getElementById('addCatBtn');
+    var input     = document.getElementById('newCatName');
     var categories = type === 'income' ? state.incomeCategories : state.expenseCategories;
 
     function addNewCat() {
       var name = input.value.trim();
-      if (!name) {
-        showToast('Ingresa un nombre para la categoría');
-        return;
-      }
-      // Validación Regex: solo letras, números, espacios y caracteres permitidos
-      if (!VALID_TEXT_REGEX.test(name)) {
-        showToast('El nombre contiene caracteres no permitidos');
-        return;
-      }
-      if (categories.indexOf(name) !== -1) {
-        showToast('Esa categoría ya existe');
-        return;
-      }
-      categories.push(name);
-      saveState();
-      render();
-      closeModal();
-      showToast('Categoría agregada');
-      manageCategories(type);
+      if (!name) { showToast('Ingresa un nombre para la categoría'); return; }
+      if (!VALID_TEXT_REGEX.test(name)) { showToast('El nombre contiene caracteres no permitidos'); return; }
+      var exists = categories.some(function (c) { return c.nombre === name; });
+      if (exists) { showToast('Esa categoría ya existe'); return; }
+
+      addBtn.disabled = true;
+      fetch(API_BASE + '/api/categorias', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nombre: name, tipo: type === 'income' ? 'ingreso' : 'gasto' })
+      })
+        .then(function (res) { if (!res.ok) throw new Error('Error ' + res.status); return res.json(); })
+        .then(function (data) {
+          categories.push(data.categoria);
+          render();
+          closeModal();
+          showToast('Categoría agregada');
+          manageCategories(type);
+        })
+        .catch(function (err) {
+          console.error('[API] Error al agregar categoría:', err.message);
+          showToast('❌ Error al agregar categoría');
+          addBtn.disabled = false;
+        });
     }
 
     addBtn.addEventListener('click', addNewCat);
     input.addEventListener('keydown', function (e) {
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        addNewCat();
-      }
+      if (e.key === 'Enter') { e.preventDefault(); addNewCat(); }
     });
 
-    // Edit and delete buttons
     var items = document.querySelectorAll('.cat-item');
     items.forEach(function (item) {
+      var catId   = item.getAttribute('data-cat-id');
       var catName = item.getAttribute('data-cat');
 
       var editBtn = item.querySelector('[data-action="editCat"]');
       if (editBtn) {
         editBtn.addEventListener('click', function () {
-          var nameSpan = item.querySelector('.cat-item__name');
+          var nameSpan    = item.querySelector('.cat-item__name');
           var currentName = nameSpan.textContent;
-          var inputHtml = '<input class="cat-edit-input" type="text" value="' + sanitizeString(currentName) + '" maxlength="30">';
-          nameSpan.innerHTML = inputHtml;
+          nameSpan.innerHTML = '<input class="cat-edit-input" type="text" value="' + sanitizeString(currentName) + '" maxlength="30">';
           var editInput = nameSpan.querySelector('.cat-edit-input');
-          editInput.focus();
-          editInput.select();
+          editInput.focus(); editInput.select();
+          var saving = false;
 
           function saveEdit() {
+            if (saving) return;
             var newName = editInput.value.trim();
-            if (!newName) {
-              showToast('El nombre no puede estar vacío');
-              editInput.focus();
-              return;
-            }
-            // Validación Regex: solo letras, números, espacios y caracteres permitidos
-            if (!VALID_TEXT_REGEX.test(newName)) {
-              showToast('El nombre contiene caracteres no permitidos');
-              editInput.focus();
-              return;
-            }
-            if (newName !== currentName && categories.indexOf(newName) !== -1) {
-              showToast('Esa categoría ya existe');
-              editInput.focus();
-              return;
-            }
-            var idx = categories.indexOf(currentName);
-            if (idx !== -1) {
-              // Update transactions with old category name
-              state.transactions.forEach(function (tx) {
-                if (tx.type === type && tx.category === currentName) {
-                  tx.category = newName;
-                }
+            if (!newName) { showToast('El nombre no puede estar vacío'); editInput.focus(); return; }
+            if (!VALID_TEXT_REGEX.test(newName)) { showToast('El nombre contiene caracteres no permitidos'); editInput.focus(); return; }
+            var exists = categories.some(function (c) { return c.nombre === newName && c._id !== catId; });
+            if (exists) { showToast('Esa categoría ya existe'); editInput.focus(); return; }
+            saving = true;
+
+            fetch(API_BASE + '/api/categorias/' + catId, {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ nombre: newName })
+            })
+              .then(function (res) { if (!res.ok) throw new Error('Error ' + res.status); return res.json(); })
+              .then(function (data) {
+                // Actualizar también las transacciones en el state local
+                state.transactions.forEach(function (tx) {
+                  if (tx.type === type && tx.category === currentName) tx.category = newName;
+                });
+                var idx = categories.findIndex(function (c) { return c._id === catId; });
+                if (idx !== -1) categories[idx].nombre = newName;
+                render(); closeModal(); showToast('Categoría actualizada'); manageCategories(type);
+              })
+              .catch(function (err) {
+                console.error('[API] Error al editar categoría:', err.message);
+                showToast('❌ Error al actualizar categoría');
+                nameSpan.textContent = currentName;
               });
-              categories[idx] = newName;
-              saveState();
-              render();
-              closeModal();
-              showToast('Categoría actualizada');
-              manageCategories(type);
-            }
           }
 
           editInput.addEventListener('blur', saveEdit);
           editInput.addEventListener('keydown', function (e) {
-            if (e.key === 'Enter') {
-              e.preventDefault();
-              saveEdit();
-            }
-            if (e.key === 'Escape') {
-              nameSpan.textContent = currentName;
-            }
+            if (e.key === 'Enter') { e.preventDefault(); saveEdit(); }
+            if (e.key === 'Escape') { nameSpan.textContent = currentName; }
           });
         });
       }
@@ -873,36 +905,30 @@
       var deleteBtn = item.querySelector('[data-action="deleteCat"]');
       if (deleteBtn) {
         deleteBtn.addEventListener('click', function () {
-          if (categories.length <= 1) {
-            showToast('Debe haber al menos una categoría');
-            return;
-          }
+          if (categories.length <= 1) { showToast('Debe haber al menos una categoría'); return; }
           var count = 0;
           state.transactions.forEach(function (tx) {
             if (tx.type === type && tx.category === catName) count++;
           });
           var msg = '¿Eliminar "' + catName + '"?';
-          if (count > 0) {
-            msg += ' ' + count + ' registro(s) pasarán a "Otros".';
-          }
+          if (count > 0) msg += ' ' + count + ' registro(s) pasarán a la primera categoría disponible.';
           if (!confirm(msg)) return;
 
-          var idx = categories.indexOf(catName);
-          if (idx !== -1) categories.splice(idx, 1);
-
-          // Reassign transactions
-          var fallback = categories.length > 0 ? categories[0] : 'Sin categoría';
-          state.transactions.forEach(function (tx) {
-            if (tx.type === type && tx.category === catName) {
-              tx.category = fallback;
-            }
-          });
-
-          saveState();
-          render();
-          closeModal();
-          showToast('Categoría eliminada');
-          manageCategories(type);
+          fetch(API_BASE + '/api/categorias/' + catId, { method: 'DELETE' })
+            .then(function (res) { if (!res.ok) throw new Error('Error ' + res.status); return res.json(); })
+            .then(function () {
+              var idx = categories.findIndex(function (c) { return c._id === catId; });
+              if (idx !== -1) categories.splice(idx, 1);
+              var fallback = categories.length > 0 ? categories[0].nombre : 'Sin categoría';
+              state.transactions.forEach(function (tx) {
+                if (tx.type === type && tx.category === catName) tx.category = fallback;
+              });
+              render(); closeModal(); showToast('Categoría eliminada'); manageCategories(type);
+            })
+            .catch(function (err) {
+              console.error('[API] Error al eliminar categoría:', err.message);
+              showToast('❌ Error al eliminar categoría');
+            });
         });
       }
     });
@@ -969,8 +995,18 @@
       var val = validateAmount(raw);
       if (val === null) val = 0;
       state.initialBalances[state.selectedMonth] = val;
-      saveState();
       render();
+      // Persistir en MongoDB
+      fetch(API_BASE + '/api/saldos/' + state.selectedMonth, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ monto: val })
+      })
+        .then(function (res) { if (!res.ok) throw new Error('Error ' + res.status); })
+        .catch(function (err) {
+          console.warn('[API] Error al guardar saldo inicial:', err.message);
+          showToast('⚠️ Error al guardar saldo en el servidor');
+        });
     });
 
     dom.initialBalanceInput.addEventListener('keydown', function (e) {
@@ -1209,17 +1245,98 @@
   }
 
   // ============================================================
+  // API: CARGA INICIAL DESDE MONGODB
+  // ============================================================
+
+  /**
+   * Carga en paralelo transacciones, categorías y saldos desde el backend.
+   * Reemplaza completamente a loadState() para datos.
+   */
+  function initFromAPI() {
+    showLoading();
+
+    Promise.all([
+      fetch(API_BASE + '/api/transacciones').then(function (r) { if (!r.ok) throw new Error('transacciones'); return r.json(); }),
+      fetch(API_BASE + '/api/categorias').then(function (r) { if (!r.ok) throw new Error('categorias'); return r.json(); }),
+      fetch(API_BASE + '/api/saldos').then(function (r) { if (!r.ok) throw new Error('saldos'); return r.json(); })
+    ])
+      .then(function (results) {
+        var transacciones = results[0];
+        var categorias    = results[1];
+        var saldos        = results[2];
+
+        // Mapear transacciones al formato interno del frontend
+        state.transactions = transacciones.map(function (tx) {
+          return {
+            id:          tx._id,
+            type:        tx.tipo === 'ingreso' ? 'income' : 'expense',
+            category:    tx.categoria,
+            amount:      tx.monto,
+            description: tx.descripcion || '',
+            date:        tx.mes + '-15'
+          };
+        });
+
+        // Categorías como objetos {_id, nombre}
+        state.incomeCategories  = categorias.filter(function (c) { return c.tipo === 'ingreso'; });
+        state.expenseCategories = categorias.filter(function (c) { return c.tipo === 'gasto'; });
+
+        // Si no hay categorías en DB, insertar las por defecto
+        if (state.incomeCategories.length === 0) {
+          seedDefaultCategories('ingreso', DEFAULT_INCOME_CATS);
+        }
+        if (state.expenseCategories.length === 0) {
+          seedDefaultCategories('gasto', DEFAULT_EXPENSE_CATS);
+        }
+
+        // Saldos iniciales por mes
+        state.initialBalances = {};
+        saldos.forEach(function (s) {
+          state.initialBalances[s.mes] = s.monto;
+        });
+
+        hideLoading();
+        render();
+        console.log('[API] Datos cargados desde MongoDB Atlas ✅');
+      })
+      .catch(function (err) {
+        console.error('[API] Error al cargar datos:', err.message);
+        showApiError('No se pudo conectar con el servidor. ¿Está corriendo node index.js?');
+      });
+  }
+
+  /**
+   * Inserta categorías por defecto en MongoDB cuando la DB está vacía.
+   */
+  function seedDefaultCategories(tipo, nombres) {
+    var cats = tipo === 'ingreso' ? state.incomeCategories : state.expenseCategories;
+    nombres.forEach(function (nombre) {
+      fetch(API_BASE + '/api/categorias', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nombre: nombre, tipo: tipo })
+      })
+        .then(function (r) { if (!r.ok) throw new Error('Error'); return r.json(); })
+        .then(function (data) { cats.push(data.categoria); })
+        .catch(function (err) { console.warn('[API] Error al insertar categoría por defecto:', err.message); });
+    });
+  }
+
+  // ============================================================
   // INIT
   // ============================================================
 
   function init() {
     cacheDom();
-    loadState();
-    render();
+    loadUIPrefs();      // solo selectedMonth, compareActive, compareMonth
+    setDefaultPrefs();  // inicializa arrays vacíos
+    render();           // render inicial vacío (el spinner ocultará la app)
     setupEvents();
     fetchEconomicIndicators();
+    initFromAPI();      // carga real desde MongoDB
   }
 
   document.addEventListener('DOMContentLoaded', init);
 
 })();
+
