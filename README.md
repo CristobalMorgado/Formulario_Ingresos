@@ -5,7 +5,7 @@ Permite registrar ingresos y egresos por mes, definir saldos iniciales independi
 
 ---
 
-## 🌟 Características
+##  Características
 
 - **Arquitectura Full-Stack** — Frontend desacoplado de un backend RESTful en Node.js, conectado a MongoDB.
 - **Registro de transacciones unificado** — Ingresos y egresos se manejan bajo el mismo modelo en la base de datos para consultas eficientes.
@@ -19,7 +19,7 @@ Permite registrar ingresos y egresos por mes, definir saldos iniciales independi
 
 ---
 
-## 🚀 Tecnologías
+##  Tecnologías
 
 | Tecnología | Uso |
 |------------|-----|
@@ -31,7 +31,7 @@ Permite registrar ingresos y egresos por mes, definir saldos iniciales independi
 
 ---
 
-## 📁 Estructura del Proyecto
+##  Estructura del Proyecto
 
 ```
 EVA 2/
@@ -50,7 +50,7 @@ EVA 2/
 
 ---
 
-## ⚙️ Uso Local
+##  Uso Local
 
 1. Abre una terminal en la carpeta `backend-ingresos`.
 2. Instala las dependencias: `npm install`
@@ -59,7 +59,7 @@ EVA 2/
 
 ---
 
-## ☁️ Roadmap: Despliegue y Autenticación
+##  Roadmap: Despliegue y Autenticación
 
 Para que esta aplicación pueda ser utilizada desde cualquier teléfono móvil en cualquier parte del mundo:
 
@@ -71,6 +71,6 @@ Para que esta aplicación pueda ser utilizada desde cualquier teléfono móvil e
 
 ---
 
-## 👨‍💻 Autor
+##  Autor
 
 **Cristóbal Morgado**
