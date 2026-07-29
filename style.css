@@ -1865,12 +1865,18 @@ body::before {
     flex-direction: column;
     align-items: stretch;
     gap: 12px;
-    padding: 14px 16px;
+    padding: 12px 16px;
   }
 
   .header__brand {
-    justify-content: space-between;
+    justify-content: flex-start;
+    gap: 10px;
     width: 100%;
+  }
+
+  .header__icon-img {
+    width: 44px;
+    height: 44px;
   }
 
   .header__controls {
@@ -1880,6 +1886,13 @@ body::before {
     width: 100%;
     gap: 10px;
   }
+
+  .month-nav {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+  }
 }
 
 @media (max-width: 480px) {
@@ -1887,10 +1900,40 @@ body::before {
     padding: 10px 12px;
   }
 
+  .header__icon-img {
+    width: 38px;
+    height: 38px;
+  }
+
   .header__controls {
     flex-direction: column;
     align-items: stretch;
-    gap: 8px;
+    gap: 10px;
+  }
+
+  .month-nav {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    width: 100%;
+    gap: 10px;
+  }
+
+  .month-nav__hint {
+    font-size: 0.85rem;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+
+  .month-picker {
+    flex: 1;
+  }
+
+  .month-picker__trigger {
+    width: 100%;
+    justify-content: space-between;
+    padding: 8px 14px;
+    font-size: 0.95rem;
   }
 
   .header__actions {
@@ -1903,9 +1946,9 @@ body::before {
   .header__logout, .header__admin {
     flex: 1;
     justify-content: center;
-    font-size: 0.8rem;
-    padding: 7px 10px;
-    height: 36px;
+    font-size: 0.82rem;
+    padding: 8px 12px;
+    height: 38px;
   }
 
   .header__title {
