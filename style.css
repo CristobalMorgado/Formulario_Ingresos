@@ -234,7 +234,8 @@
   border: 1px solid rgba(168, 85, 247, 0.3);
   font-size: 0.85rem;
   font-weight: 600;
-  padding: 8px 16px;
+  font-family: 'Inter', sans-serif;
+  padding: 8px 18px;
   border-radius: 10px;
   transition: all 0.2s ease;
   height: 38px;
@@ -504,17 +505,19 @@ body::before {
 .month-nav {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   position: relative;
   z-index: 1;
 }
 
 .month-nav__hint {
-  font-size: 0.78rem;
+  font-size: 0.85rem;
   font-weight: 600;
-  color: rgba(255, 255, 255, 0.55);
+  color: rgba(255, 255, 255, 0.7);
   letter-spacing: 0.04em;
   text-transform: uppercase;
+  white-space: nowrap;
+  margin-right: 2px;
 }
 
 /* ---- Month Picker ---- */

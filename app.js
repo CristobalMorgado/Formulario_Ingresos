@@ -12,8 +12,8 @@
   var STORAGE_KEY = 'myMoneyData';
   var MONTHS = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
 
-  var DEFAULT_INCOME_CATS = ['Sueldo', 'Horas Extras', 'Otros'];
-  var DEFAULT_EXPENSE_CATS = ['ENEL', 'Smapa', 'Hija', 'Movistar', 'Wom', 'Gas', 'Hites', 'BIP'];
+  var DEFAULT_INCOME_CATS = ['Sueldo', 'Otros'];
+  var DEFAULT_EXPENSE_CATS = ['Servicios Básicos', 'Varios'];
 
   // Regex para validación de texto: letras, números, espacios y caracteres especiales del español
   var VALID_TEXT_REGEX = /^[a-zA-Z0-9\s.,\-ñÑáéíóúÁÉÍÓÚ]+$/;
