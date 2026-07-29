@@ -22,6 +22,200 @@
   // Vacío = rutas relativas → funciona cuando Node.js sirve el frontend
   var API_BASE = '';
 
+  // Token JWT de sesión
+  var AUTH_TOKEN = null;
+  var AUTH_STORAGE_KEY = 'billeteraJsAuth';
+
+  /**
+   * Devuelve los headers necesarios para las peticiones autenticadas.
+   */
+  function authHeaders(extra) {
+    var headers = { 'Content-Type': 'application/json' };
+    if (AUTH_TOKEN) headers['Authorization'] = 'Bearer ' + AUTH_TOKEN;
+    if (extra) {
+      for (var k in extra) headers[k] = extra[k];
+    }
+    return headers;
+  }
+
+  /**
+   * Fetch con autenticación. Si recibe 401, cierra la sesión automáticamente.
+   */
+  function authFetch(url, options) {
+    options = options || {};
+    options.headers = authHeaders(options.headers);
+    return fetch(API_BASE + url, options).then(function (res) {
+      if (res.status === 401) {
+        logout();
+        throw new Error('Sesión expirada');
+      }
+      return res;
+    });
+  }
+
+  // ============================================================
+  // AUTENTICACIÓN (Login / Registro / Logout)
+  // ============================================================
+
+  function setupAuth() {
+    var authScreen   = document.getElementById('authScreen');
+    var appMain      = document.getElementById('appMain');
+    var tabLogin     = document.getElementById('tabLogin');
+    var tabRegister  = document.getElementById('tabRegister');
+    var loginForm    = document.getElementById('loginForm');
+    var registerForm = document.getElementById('registerForm');
+    var loginError   = document.getElementById('loginError');
+    var registerError = document.getElementById('registerError');
+    var logoutBtn    = document.getElementById('logoutBtn');
+
+    // Tabs
+    tabLogin.addEventListener('click', function () {
+      tabLogin.classList.add('auth-tab--active');
+      tabRegister.classList.remove('auth-tab--active');
+      loginForm.removeAttribute('hidden');
+      registerForm.setAttribute('hidden', '');
+      loginError.setAttribute('hidden', '');
+    });
+
+    tabRegister.addEventListener('click', function () {
+      tabRegister.classList.add('auth-tab--active');
+      tabLogin.classList.remove('auth-tab--active');
+      registerForm.removeAttribute('hidden');
+      loginForm.setAttribute('hidden', '');
+      registerError.setAttribute('hidden', '');
+    });
+
+    // Login
+    loginForm.addEventListener('submit', function (e) {
+      e.preventDefault();
+      var email    = document.getElementById('loginEmail').value.trim();
+      var password = document.getElementById('loginPassword').value;
+
+      var btn = document.getElementById('loginBtn');
+      btn.disabled = true;
+      btn.textContent = 'Ingresando...';
+      loginError.setAttribute('hidden', '');
+
+      fetch(API_BASE + '/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email, password: password })
+      })
+        .then(function (res) { return res.json().then(function (data) { return { ok: res.ok, data: data }; }); })
+        .then(function (result) {
+          if (!result.ok) {
+            loginError.textContent = result.data.error || 'Error al iniciar sesión';
+            loginError.removeAttribute('hidden');
+            btn.disabled = false;
+            btn.textContent = 'Iniciar Sesión';
+            return;
+          }
+          onLoginSuccess(result.data);
+        })
+        .catch(function () {
+          loginError.textContent = 'No se pudo conectar con el servidor';
+          loginError.removeAttribute('hidden');
+          btn.disabled = false;
+          btn.textContent = 'Iniciar Sesión';
+        });
+    });
+
+    // Registro
+    registerForm.addEventListener('submit', function (e) {
+      e.preventDefault();
+      var nombre   = document.getElementById('regName').value.trim();
+      var email    = document.getElementById('regEmail').value.trim();
+      var password = document.getElementById('regPassword').value;
+
+      var btn = document.getElementById('registerBtn');
+      btn.disabled = true;
+      btn.textContent = 'Creando cuenta...';
+      registerError.setAttribute('hidden', '');
+
+      fetch(API_BASE + '/api/auth/registro', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nombre: nombre, email: email, password: password })
+      })
+        .then(function (res) { return res.json().then(function (data) { return { ok: res.ok, data: data }; }); })
+        .then(function (result) {
+          if (!result.ok) {
+            registerError.textContent = result.data.error || 'Error al crear la cuenta';
+            registerError.removeAttribute('hidden');
+            btn.disabled = false;
+            btn.textContent = 'Crear Cuenta';
+            return;
+          }
+          onLoginSuccess(result.data);
+        })
+        .catch(function () {
+          registerError.textContent = 'No se pudo conectar con el servidor';
+          registerError.removeAttribute('hidden');
+          btn.disabled = false;
+          btn.textContent = 'Crear Cuenta';
+        });
+    });
+
+    // Logout
+    logoutBtn.addEventListener('click', function () {
+      if (confirm('¿Cerrar sesión?')) logout();
+    });
+  }
+
+  function onLoginSuccess(data) {
+    AUTH_TOKEN = data.token;
+    try {
+      localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify({
+        token: data.token,
+        nombre: data.usuario.nombre,
+        email: data.usuario.email
+      }));
+    } catch (e) { /* ignorar */ }
+
+    showApp(data.usuario.nombre);
+  }
+
+  function showApp(userName) {
+    document.getElementById('authScreen').setAttribute('hidden', '');
+    var appMain = document.getElementById('appMain');
+    appMain.removeAttribute('hidden');
+
+    var greeting = document.getElementById('userGreeting');
+    if (greeting && userName) {
+      greeting.textContent = 'Hola, ' + userName;
+    }
+
+    // Cargar datos
+    cacheDom();
+    loadUIPrefs();
+    setDefaultPrefs();
+    render();
+    setupEvents();
+    fetchEconomicIndicators();
+    initFromAPI();
+  }
+
+  function logout() {
+    AUTH_TOKEN = null;
+    try { localStorage.removeItem(AUTH_STORAGE_KEY); } catch (e) { /* ignorar */ }
+    location.reload();
+  }
+
+  function tryRestoreSession() {
+    try {
+      var raw = localStorage.getItem(AUTH_STORAGE_KEY);
+      if (raw) {
+        var data = JSON.parse(raw);
+        if (data && data.token) {
+          AUTH_TOKEN = data.token;
+          showApp(data.nombre);
+          return true;
+        }
+      }
+    } catch (e) { /* ignorar */ }
+    return false;
+  }
+
   // ============================================================
   // STATE
   // ============================================================
@@ -687,9 +881,8 @@
         fecha:       state.selectedMonth + '-15'
       };
 
-      fetch(API_BASE + '/api/transacciones', {
+      authFetch('/api/transacciones', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       })
         .then(function (res) {
@@ -727,7 +920,7 @@
   }
 
   function deleteTransaction(id) {
-    fetch(API_BASE + '/api/transacciones/' + id, { method: 'DELETE' })
+    authFetch('/api/transacciones/' + id, { method: 'DELETE' })
       .then(function (res) {
         if (!res.ok) throw new Error('Error ' + res.status);
         return res.json();
@@ -756,7 +949,7 @@
     var monthName = monthKeyToLabel(state.selectedMonth);
     if (!confirm('¿Estás seguro de que deseas eliminar TODOS los gastos de ' + monthName + '?')) return;
 
-    fetch(API_BASE + '/api/transacciones/mes/' + state.selectedMonth + '/tipo/gasto', { method: 'DELETE' })
+    authFetch('/api/transacciones/mes/' + state.selectedMonth + '/tipo/gasto', { method: 'DELETE' })
       .then(function (res) {
         if (!res.ok) throw new Error('Error ' + res.status);
         return res.json();
@@ -823,9 +1016,8 @@
       if (exists) { showToast('Esa categoría ya existe'); return; }
 
       addBtn.disabled = true;
-      fetch(API_BASE + '/api/categorias', {
+      authFetch('/api/categorias', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ nombre: name, tipo: type === 'income' ? 'ingreso' : 'gasto' })
       })
         .then(function (res) { if (!res.ok) throw new Error('Error ' + res.status); return res.json(); })
@@ -872,9 +1064,8 @@
             if (exists) { showToast('Esa categoría ya existe'); editInput.focus(); return; }
             saving = true;
 
-            fetch(API_BASE + '/api/categorias/' + catId, {
+            authFetch('/api/categorias/' + catId, {
               method: 'PUT',
-              headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ nombre: newName })
             })
               .then(function (res) { if (!res.ok) throw new Error('Error ' + res.status); return res.json(); })
@@ -914,7 +1105,7 @@
           if (count > 0) msg += ' ' + count + ' registro(s) pasarán a la primera categoría disponible.';
           if (!confirm(msg)) return;
 
-          fetch(API_BASE + '/api/categorias/' + catId, { method: 'DELETE' })
+          authFetch('/api/categorias/' + catId, { method: 'DELETE' })
             .then(function (res) { if (!res.ok) throw new Error('Error ' + res.status); return res.json(); })
             .then(function () {
               var idx = categories.findIndex(function (c) { return c._id === catId; });
@@ -997,9 +1188,8 @@
       state.initialBalances[state.selectedMonth] = val;
       render();
       // Persistir en MongoDB
-      fetch(API_BASE + '/api/saldos/' + state.selectedMonth, {
+      authFetch('/api/saldos/' + state.selectedMonth, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ monto: val })
       })
         .then(function (res) { if (!res.ok) throw new Error('Error ' + res.status); })
@@ -1256,9 +1446,9 @@
     showLoading();
 
     Promise.all([
-      fetch(API_BASE + '/api/transacciones').then(function (r) { if (!r.ok) throw new Error('transacciones'); return r.json(); }),
-      fetch(API_BASE + '/api/categorias').then(function (r) { if (!r.ok) throw new Error('categorias'); return r.json(); }),
-      fetch(API_BASE + '/api/saldos').then(function (r) { if (!r.ok) throw new Error('saldos'); return r.json(); })
+      authFetch('/api/transacciones').then(function (r) { if (!r.ok) throw new Error('transacciones'); return r.json(); }),
+      authFetch('/api/categorias').then(function (r) { if (!r.ok) throw new Error('categorias'); return r.json(); }),
+      authFetch('/api/saldos').then(function (r) { if (!r.ok) throw new Error('saldos'); return r.json(); })
     ])
       .then(function (results) {
         var transacciones = results[0];
@@ -1311,9 +1501,8 @@
   function seedDefaultCategories(tipo, nombres) {
     var cats = tipo === 'ingreso' ? state.incomeCategories : state.expenseCategories;
     nombres.forEach(function (nombre) {
-      fetch(API_BASE + '/api/categorias', {
+      authFetch('/api/categorias', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ nombre: nombre, tipo: tipo })
       })
         .then(function (r) { if (!r.ok) throw new Error('Error'); return r.json(); })
@@ -1327,16 +1516,16 @@
   // ============================================================
 
   function init() {
-    cacheDom();
-    loadUIPrefs();      // solo selectedMonth, compareActive, compareMonth
-    setDefaultPrefs();  // inicializa arrays vacíos
-    render();           // render inicial vacío (el spinner ocultará la app)
-    setupEvents();
-    fetchEconomicIndicators();
-    initFromAPI();      // carga real desde MongoDB
+    setupAuth();
+    // Intentar restaurar sesión existente
+    if (!tryRestoreSession()) {
+      // No hay sesión — mostrar pantalla de login
+      document.getElementById('authScreen').removeAttribute('hidden');
+    }
   }
 
   document.addEventListener('DOMContentLoaded', init);
 
 })();
+
 

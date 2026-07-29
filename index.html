@@ -12,14 +12,64 @@
 <body>
 
   <!-- LOADING OVERLAY — visible mientras la API carga los datos -->
-  <div id="appLoadingOverlay" class="loading-overlay">
+  <div id="appLoadingOverlay" class="loading-overlay" hidden>
     <div class="loading-overlay__box">
       <div class="loading-spinner"></div>
       <p class="loading-overlay__text">Conectando con el servidor...</p>
     </div>
   </div>
 
-  <div class="app" role="main">
+  <!-- ═══════════ PANTALLA DE AUTENTICACIÓN ═══════════ -->
+  <div id="authScreen" class="auth-screen">
+    <div class="auth-card">
+      <div class="auth-card__header">
+        <img src="wallet-icon.png" alt="Billetera" class="auth-card__icon">
+        <h1 class="auth-card__title">Billetera.JS</h1>
+        <p class="auth-card__subtitle">Control Financiero Personal</p>
+      </div>
+
+      <!-- Tabs Login / Registro -->
+      <div class="auth-tabs">
+        <button class="auth-tab auth-tab--active" id="tabLogin" data-tab="login">Iniciar Sesión</button>
+        <button class="auth-tab" id="tabRegister" data-tab="register">Crear Cuenta</button>
+      </div>
+
+      <!-- Formulario LOGIN -->
+      <form class="auth-form" id="loginForm">
+        <div class="form-group">
+          <label class="form-label" for="loginEmail">Email</label>
+          <input class="form-input" type="email" id="loginEmail" placeholder="tu@email.com" required autocomplete="email">
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="loginPassword">Contraseña</label>
+          <input class="form-input" type="password" id="loginPassword" placeholder="••••••" required autocomplete="current-password" minlength="6">
+        </div>
+        <p class="auth-error" id="loginError" hidden></p>
+        <button class="btn btn--primary btn--full" type="submit" id="loginBtn">Iniciar Sesión</button>
+      </form>
+
+      <!-- Formulario REGISTRO -->
+      <form class="auth-form" id="registerForm" hidden>
+        <div class="form-group">
+          <label class="form-label" for="regName">Nombre</label>
+          <input class="form-input" type="text" id="regName" placeholder="Tu nombre" required autocomplete="name" minlength="2" maxlength="50">
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="regEmail">Email</label>
+          <input class="form-input" type="email" id="regEmail" placeholder="tu@email.com" required autocomplete="email">
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="regPassword">Contraseña</label>
+          <input class="form-input" type="password" id="regPassword" placeholder="Mínimo 6 caracteres" required autocomplete="new-password" minlength="6">
+        </div>
+        <p class="auth-error" id="registerError" hidden></p>
+        <button class="btn btn--primary btn--full" type="submit" id="registerBtn">Crear Cuenta</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ═══════════ APLICACIÓN PRINCIPAL (oculta hasta login) ═══════════ -->
+  <div class="app" id="appMain" role="main" hidden>
 
     <!-- HEADER -->
     <header class="header">
@@ -29,9 +79,10 @@
         </span>
         <div class="header__text">
           <h1 class="header__title">Billetera.JS <span class="header__subtitle">| Control Financiero</span></h1>
-          <p class="header__pill">Panel de control</p>
+          <p class="header__pill" id="userGreeting">Panel de control</p>
         </div>
       </div>
+      <button class="btn btn--ghost btn--sm header__logout" id="logoutBtn" title="Cerrar sesión">🚪 Salir</button>
       <div class="month-nav">
         <span class="month-nav__hint">Mes</span>
         <div class="month-picker">
@@ -156,7 +207,7 @@
 
       <!-- FOOTER -->
       <footer class="footer">
-        <p class="footer__text">Los datos se guardan automáticamente en tu navegador</p>
+        <p class="footer__text">Los datos se guardan de forma segura en la nube ☁️</p>
       </footer>
     </div>
 
