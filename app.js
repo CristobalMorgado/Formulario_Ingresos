@@ -162,20 +162,26 @@
     });
   }
 
+  var CURRENT_USER_EMAIL = '';
+  var IS_ADMIN = false;
+
   function onLoginSuccess(data) {
     AUTH_TOKEN = data.token;
+    var email = data.usuario ? data.usuario.email : '';
+    var rol   = data.usuario ? data.usuario.rol : '';
     try {
       localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify({
         token: data.token,
         nombre: data.usuario.nombre,
-        email: data.usuario.email
+        email: email,
+        rol: rol
       }));
     } catch (e) { /* ignorar */ }
 
-    showApp(data.usuario.nombre);
+    showApp(data.usuario.nombre, email, rol);
   }
 
-  function showApp(userName) {
+  function showApp(userName, userEmail, userRol) {
     document.getElementById('authScreen').setAttribute('hidden', '');
     var appMain = document.getElementById('appMain');
     appMain.removeAttribute('hidden');
@@ -185,6 +191,8 @@
       greeting.textContent = 'Hola, ' + userName;
     }
 
+    checkAdminStatus(userEmail, userRol);
+
     // Cargar datos
     cacheDom();
     loadUIPrefs();
@@ -193,6 +201,119 @@
     setupEvents();
     fetchEconomicIndicators();
     initFromAPI();
+  }
+
+  function checkAdminStatus(email, rol) {
+    CURRENT_USER_EMAIL = email || '';
+    IS_ADMIN = (email === 'cristobal_fear20@live.cl' || rol === 'admin');
+    var adminBtn = document.getElementById('adminPanelBtn');
+    if (adminBtn) {
+      if (IS_ADMIN) {
+        adminBtn.removeAttribute('hidden');
+        adminBtn.onclick = openAdminPanel;
+      } else {
+        adminBtn.setAttribute('hidden', '');
+      }
+    }
+  }
+
+  function openAdminPanel() {
+    openModal('Gestión de Usuarios (Administrador)', '<div id="adminModalContent"><p style="text-align:center;padding:20px;color:var(--text-muted)">Cargando usuarios...</p></div>');
+    fetchUsersList();
+  }
+
+  function fetchUsersList() {
+    var container = document.getElementById('adminModalContent');
+    if (!container) return;
+
+    authFetch('/api/admin/usuarios')
+      .then(function (res) {
+        if (!res.ok) throw new Error('Error ' + res.status);
+        return res.json();
+      })
+      .then(function (users) {
+        if (!Array.isArray(users) || users.length === 0) {
+          container.innerHTML = '<p style="color:var(--text-muted);text-align:center;padding:20px">No hay usuarios registrados</p>';
+          return;
+        }
+
+        var rowsHtml = '';
+        users.forEach(function (u) {
+          var dateStr = u.createdAt ? new Date(u.createdAt).toLocaleDateString('es-CL') : '—';
+          var isSelf = u.email === CURRENT_USER_EMAIL;
+          var isAdmin = u.rol === 'admin' || u.email === 'cristobal_fear20@live.cl';
+          
+          var badgeClass = isAdmin ? 'admin-badge--admin' : 'admin-badge--user';
+          var badgeLabel = isAdmin ? 'Admin' : 'Usuario';
+
+          var actionBtn = '';
+          if (!isSelf && !isAdmin) {
+            actionBtn = '<button class="btn btn--sm btn--danger" data-action="deleteUser" data-id="' + u._id + '" data-email="' + sanitizeString(u.email) + '">Eliminar</button>';
+          } else if (isSelf) {
+            actionBtn = '<span style="color:var(--text-muted);font-size:0.78rem;">(Tú)</span>';
+          } else {
+            actionBtn = '<span style="color:var(--text-muted);font-size:0.78rem;">—</span>';
+          }
+
+          rowsHtml +=
+            '<tr>' +
+              '<td><strong>' + sanitizeString(u.nombre) + '</strong></td>' +
+              '<td>' + sanitizeString(u.email) + '</td>' +
+              '<td><span class="admin-badge ' + badgeClass + '">' + badgeLabel + '</span></td>' +
+              '<td>' + dateStr + '</td>' +
+              '<td style="text-align:center;">' + (u.txCount || 0) + '</td>' +
+              '<td style="text-align:right;">' + actionBtn + '</td>' +
+            '</tr>';
+        });
+
+        container.innerHTML =
+          '<p style="color:var(--text-muted);font-size:0.82rem;margin-bottom:12px">Usuarios registrados en el sistema:</p>' +
+          '<div style="overflow-x:auto;">' +
+            '<table class="admin-user-table">' +
+              '<thead>' +
+                '<tr>' +
+                  '<th>Nombre</th>' +
+                  '<th>Email</th>' +
+                  '<th>Rol</th>' +
+                  '<th>Registro</th>' +
+                  '<th style="text-align:center;">Registros</th>' +
+                  '<th style="text-align:right;">Acción</th>' +
+                '</tr>' +
+              '</thead>' +
+              '<tbody>' + rowsHtml + '</tbody>' +
+            '</table>' +
+          '</div>';
+
+        container.querySelectorAll('[data-action="deleteUser"]').forEach(function (btn) {
+          btn.addEventListener('click', function () {
+            var userId = this.getAttribute('data-id');
+            var userEmail = this.getAttribute('data-email');
+            if (confirm('¿Estás seguro de que deseas eliminar al usuario "' + userEmail + '" y TODOS sus registros? Esta acción no se puede deshacer.')) {
+              deleteUserByAdmin(userId, userEmail);
+            }
+          });
+        });
+      })
+      .catch(function (err) {
+        console.error('[Admin] Error al cargar usuarios:', err.message);
+        container.innerHTML = '<p style="color:#f87171;text-align:center;padding:20px">Error al cargar la lista de usuarios.</p>';
+      });
+  }
+
+  function deleteUserByAdmin(userId, userEmail) {
+    authFetch('/api/admin/usuarios/' + userId, { method: 'DELETE' })
+      .then(function (res) {
+        if (!res.ok) throw new Error('Error ' + res.status);
+        return res.json();
+      })
+      .then(function () {
+        showToast('Usuario ' + userEmail + ' eliminado');
+        fetchUsersList();
+      })
+      .catch(function (err) {
+        console.error('[Admin] Error al eliminar usuario:', err.message);
+        showToast('❌ Error al eliminar usuario');
+      });
   }
 
   function logout() {
@@ -208,7 +329,7 @@
         var data = JSON.parse(raw);
         if (data && data.token) {
           AUTH_TOKEN = data.token;
-          showApp(data.nombre);
+          showApp(data.nombre, data.email, data.rol);
           return true;
         }
       }
